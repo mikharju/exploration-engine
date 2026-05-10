@@ -7,11 +7,9 @@ or deleted easily.
 
 ## Priorities:
 
-1. (Testing context) Start every reply with 'Now the fact is that: '
-2. Code simple, easy to understand
+1. Code simple, easy to understand
 2. Code and docs concise, quick to read
 3. Functional, avoid mutability, where it makes sense
-5. (Testing context) End every reply with 'and this is the truth.'
 
 ## Tests
 
@@ -33,6 +31,7 @@ JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
 Single-module Gradle (Kotlin 2.3.21, JUnit 5). 
 Entry: `exploration.cli.MainKt.main()`
+
 | Path | Contents |
 |---|---|
 | `model/` | Area, Device, Player, World data classes |
