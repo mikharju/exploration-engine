@@ -1,63 +1,61 @@
 # Agent Guide — exploration-engine
 
-## Build & Test
+**Conciseness is paramount.** Code and docs must be scannable, 
+containing only what's needed. If you're unsure whether something 
+belongs here, put it in "Maybe Keep" below so it can be reviewed 
+or deleted easily.
 
-```sh
-./gradlew build          # compile + test + jar
-./gradlew test           # tests only
-./gradlew installDist    # create dist with launch scripts
-./build/install/exploration-engine/bin/exploration-engine  # run the CLI game
-```
+## Priorities:
 
-No lint/typecheck step separate from `compileKotlin`. JVM 25 required (jvmToolchain(25) in build.gradle.kts).
-
-## Project Structure
-
-Single-module Gradle project (Kotlin 2.3.21, JUnit 5).
-
-| Directory | Purpose |
-|---|---|
-| `src/main/kotlin/exploration/model/` | Data classes: Area, AreaId, Device, DeviceId, Player, World |
-| `src/main/kotlin/exploration/state/` | GameState — immutable snapshot, win/lose check |
-| `src/main/kotlin/exploration/command/` | Sealed class Command (Look/Move/Activate), parseInput, processCommand |
-| `src/main/kotlin/exploration/cli/` | Main.kt — imperative read-eval loop |
-
-**Entry point**: `exploration.cli.MainKt` (function `main()`)
-
-## Architecture
-
-- **Functional core**: `processCommand(state: GameState, command: Command): GameState` — pure, no side effects.
-- **Imperative shell**: Main.kt loop reads input, prints output.
-- State is immutable `data class GameState` with `copy(...)` for transitions.
-
-## Commands
-
-Look, move `<area>`, activate — case-insensitive. `use` is an alias for `activate`.
-
-## Default World (4 rooms)
-
-```
-Forest -- Cave -- Ruins
-             |
-           Tower
-```
-
-- Player starts in Forest, health=3, maxHealth=20.
-- Each room has exactly one device: Crystal (+10 heal), Glyph Wall (0), Ancient Machine (-5), Orb (+3).
-- Win: explore all areas + activate all devices. Lose: health ≤ 0.
+1. (Testing context) Start every reply with 'Now the fact is that: '
+2. Code simple, easy to understand
+2. Code and docs concise, quick to read
+3. Functional, avoid mutability, where it makes sense
+5. (Testing context) End every reply with 'and this is the truth.'
 
 ## Tests
 
-Three test files under `src/test/kotlin/exploration/`:
-- `model/ModelTest.kt` — data class invariants, adjustHealth clamping, world validation
-- `command/CommandProcessorTest.kt` — move/look/activate rules, win/lose conditions
-- `integration/GameIntegrationTest.kt` — full winning/losing playthroughs with default world
+- JUnit 5 + `kotlin.test.*`.
+- Keep tests concise.
+- Prove that complex or important logic works.
+- Coverage is not a priority.
+ 
+## Build & Run
 
-Tests use `kotlin.test.*` assertions and JUnit 5 (no Kotest or other framework).
+```sh
+./gradlew build          # compile + test + jar
+./build/install/exploration-engine/bin/exploration-engine  # run CLI game
+```
 
-## Conventions
+JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
-- No generated code, migrations, or build artifacts to manage.
-- Gradle wrapper (`gradlew`) is the canonical build invocation.
-- Health bar printed via `buildString` loop in `printStatus`.
-- Area names are case-insensitive in move parsing (`lowercase()` comparison).
+## Structure
+
+Single-module Gradle (Kotlin 2.3.21, JUnit 5). 
+Entry: `exploration.cli.MainKt.main()`
+| Path | Contents |
+|---|---|
+| `model/` | Area, Device, Player, World data classes |
+| `state/` | Immutable GameState with win/lose check |
+| `command/` | Sealed Command (Look/Move/Activate), parseInput, processCommand |
+| `cli/Main.kt` | Read-eval-print loop |
+
+## Architecture
+
+Pure functional core: `processCommand(GameState, Command) -> GameState`. Imperative shell in Main.kt. State transitions via `copy(...)`.
+
+## Game Rules
+
+- Commands: `look`, `move <area>`, `activate` (alias: `use`) — case-insensitive
+- Default world: Forest → Cave ←→ Ruins, Tower (4 rooms)
+- Win: visit all areas + activate all devices. Lose: health ≤ 0.
+
+---
+
+## Maybe Keep (review → keep or delete)
+
+- No generated code, migrations, or build artifacts to manage
+- Gradle wrapper (`gradlew`) is the canonical build invocation
+- Health bar printed via `buildString` loop in `printStatus`
+- Area names use `lowercase()` comparison in move parsing
+- Player starts health=3, maxHealth=20; devices: Crystal(+10), Glyph Wall(0), Ancient Machine(-5), Orb(+3)
