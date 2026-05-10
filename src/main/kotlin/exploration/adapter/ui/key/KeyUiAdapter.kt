@@ -1,20 +1,51 @@
 package exploration.adapter.ui.key
 
 import exploration.port.*
+import org.fusesource.jansi.AnsiConsole
 
 class KeyUiAdapter(private val engine: GameEngine) {
 
     fun run(scenarioId: String) {
-        var state = engine.start(scenarioId)
-        printIntro()
-        render(state, engine)
-
-        while (!engine.view(state).gameOver) {
-            state = engine.tick(state, waitForInput())
+        AnsiConsole.systemInstall()
+        enableRawInput()
+        try {
+            var state = engine.start(scenarioId)
+            printIntro()
             render(state, engine)
-        }
 
-        showEnd(engine.view(state))
+            while (!engine.view(state).gameOver) {
+                val event = waitForInput()
+                if (event is InputEvent.Exit) break
+                state = engine.tick(state, event)
+                render(state, engine)
+            }
+
+            showEnd(engine.view(state))
+        } finally {
+            disableRawInput()
+            AnsiConsole.systemUninstall()
+        }
+    }
+
+    private fun runStty(args: String) {
+        try {
+            ProcessBuilder("stty", "-F", "/dev/tty", *args.split(" ").toTypedArray())
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
+                .waitFor()
+        } catch (_: Exception) {}
+    }
+
+    private fun enableRawInput() {
+        if (!openTty()) {
+            println("Warning: /dev/tty not available — falling back to stdin.")
+        }
+        runStty("-icanon -echo min 1 time 0")
+    }
+
+    private fun disableRawInput() {
+        ttyStream?.close()
+        runStty("icanon echo")
     }
 
     private fun render(state: exploration.state.GameState, eng: GameEngine) {
@@ -50,30 +81,46 @@ class KeyUiAdapter(private val engine: GameEngine) {
 
         val padS = if (s.isEmpty()) "  [s]       " else "  [s] $s    "
         println(padS.padEnd(40))
-        println("[l]ook  [u]se  [q]uit | Press a key:")
+    }
+
+    private var ttyStream: java.io.FileInputStream? = null
+
+    private fun openTty(): Boolean {
+        return try {
+            ttyStream = java.io.FileInputStream("/dev/tty")
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun waitForInput(): InputEvent {
+        val stream = ttyStream ?: System.`in`
         while (true) {
-            val r = System.`in`.read()
+            val r = stream.read()
             if (r < 0) return InputEvent.Exit
 
-            val ch = r.toChar().lowercaseChar()
-            when (ch) {
-                'w' -> return InputEvent.MoveDirection(DirectionSlot.W)
-                'a' -> return InputEvent.MoveDirection(DirectionSlot.A)
-                's' -> return InputEvent.MoveDirection(DirectionSlot.S)
-                'd' -> return InputEvent.MoveDirection(DirectionSlot.D)
-                'l' -> return InputEvent.Look
-                'u' -> return InputEvent.Activate
-                'q', '\u001b' -> return InputEvent.Exit
+            when (val ch = r.toChar()) {
+                '\u001b' -> return InputEvent.Exit
+                else -> {
+                    val lc = ch.lowercaseChar()
+                    when (lc) {
+                        'w' -> return InputEvent.MoveDirection(DirectionSlot.W)
+                        'a' -> return InputEvent.MoveDirection(DirectionSlot.A)
+                        's' -> return InputEvent.MoveDirection(DirectionSlot.S)
+                        'd' -> return InputEvent.MoveDirection(DirectionSlot.D)
+                        'l' -> return InputEvent.Look
+                        'u' -> return InputEvent.Activate
+                        'q' -> return InputEvent.Exit
+                    }
+                }
             }
         }
     }
 
     private fun printIntro() {
         println("=== Exploration Engine (Key Mode) ===")
-        println("w/a/s/d: move | l: look | u: activate | q: quit")
+        println("w/a/s/d: move | l: look | u: activate | q/esc: quit")
         println("Goal: explore all areas and activate all devices. Don't run out of health!")
         println()
     }
@@ -87,7 +134,5 @@ class KeyUiAdapter(private val engine: GameEngine) {
         } else if (v.gameOver && v.win != true) {
             println("GAME OVER - Better luck next time.")
         }
-        System.out.print("Press any key to exit... ")
-        System.`in`.read()
     }
 }
