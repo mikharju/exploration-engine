@@ -10,6 +10,7 @@ or deleted easily.
 1. Code simple, easy to understand
 2. Code and docs concise, quick to read
 3. Functional, avoid mutability, where it makes sense
+4. Hexagonal architecture, functional core behind interfaces, UIs, scenario loading, such in adapters
 
 ## Tests
 
