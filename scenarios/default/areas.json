@@ -1,0 +1,26 @@
+[
+  {
+    "id": "Forest",
+    "description": "A dense forest with tall pines and dappled sunlight.",
+    "connections": ["Cave"],
+    "deviceId": "Crystal"
+  },
+  {
+    "id": "Cave",
+    "description": "A dim cavern with stalactites and a cool breeze.",
+    "connections": ["Forest", "Ruins", "Tower"],
+    "deviceId": "Glyph Wall"
+  },
+  {
+    "id": "Ruins",
+    "description": "Crumbled stone ruins overgrown with vines.",
+    "connections": ["Cave"],
+    "deviceId": "Ancient Machine"
+  },
+  {
+    "id": "Tower",
+    "description": "A tall stone tower interior with a spiral staircase.",
+    "connections": ["Cave"],
+    "deviceId": "Orb"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "Crystal",
+    "lookDescription": "A glowing crystal pulses with soft blue light.",
+    "activateDescription": "The crystal flares brightly, warmth flooding through you. (+10 health)",
+    "healthEffect": 10
+  },
+  {
+    "id": "Glyph Wall",
+    "lookDescription": "Ancient glyphs cover the cave wall, shimmering faintly.",
+    "activateDescription": "The glyphs rearrange into a clear message: 'All paths lead to understanding.'",
+    "healthEffect": 0
+  },
+  {
+    "id": "Ancient Machine",
+    "lookDescription": "A rusted machine hums with unstable energy.",
+    "activateDescription": "The machine whirs violently, discharging a burst of raw power. (-5 health)",
+    "healthEffect": -5
+  },
+  {
+    "id": "Orb",
+    "lookDescription": "A smooth obsidian orb sits on a stone pedestal.",
+    "activateDescription": "The orb cracks open, releasing warm light that strengthens you. (+3 health)",
+    "healthEffect": 3
+  }
+]

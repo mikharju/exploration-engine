@@ -1,0 +1,14 @@
+[
+  {
+    "id": "A",
+    "description": "Room A.",
+    "connections": ["B"],
+    "deviceId": "device1"
+  },
+  {
+    "id": "B",
+    "description": "Room B.",
+    "connections": ["A"],
+    "deviceId": "device2"
+  }
+]

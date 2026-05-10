@@ -93,15 +93,33 @@ class ModelTest {
     }
 
     @Test
-    fun `default world has 4 rooms`() {
-        val w = buildDefaultWorld()
-        assertEquals(4, w.areas.size)
+    fun `world with multiple rooms has correct structure`() {
+        val aId = AreaId("A")
+        val bId = AreaId("B")
+        val w = World(
+            areas = mapOf(
+                aId to Area(aId, "Room A", setOf(bId), Device(DeviceId("d1"), "look1", "act1", 5)),
+                bId to Area(bId, "Room B", setOf(aId), Device(DeviceId("d2"), "look2", "act2", -3))
+            ),
+            startArea = aId
+        )
+        assertEquals(2, w.areas.size)
         assertTrue(w.startArea in w.areas.keys)
     }
 
     @Test
-    fun `default world connectivity forms valid graph`() {
-        val w = buildDefaultWorld()
+    fun `world connectivity forms valid graph`() {
+        val aId = AreaId("A")
+        val bId = AreaId("B")
+        val cId = AreaId("C")
+        val w = World(
+            areas = mapOf(
+                aId to Area(aId, "Room A", setOf(bId)),
+                bId to Area(bId, "Room B", setOf(aId, cId)),
+                cId to Area(cId, "Room C", setOf(bId))
+            ),
+            startArea = aId
+        )
         w.areas.values.forEach { area ->
             area.connections.forEach { connId ->
                 assertTrue(connId in w.areas, "Connection $connId not found in world")
@@ -110,8 +128,16 @@ class ModelTest {
     }
 
     @Test
-    fun `default world each room has a device`() {
-        val w = buildDefaultWorld()
+    fun `world can have rooms with devices`() {
+        val aId = AreaId("A")
+        val bId = AreaId("B")
+        val w = World(
+            areas = mapOf(
+                aId to Area(aId, "Room A", setOf(bId), Device(DeviceId("d1"), "look1", "act1", 5)),
+                bId to Area(bId, "Room B", setOf(aId), Device(DeviceId("d2"), "look2", "act2", -3))
+            ),
+            startArea = aId
+        )
         w.areas.values.forEach { area ->
             assertTrue(area.device != null, "Room ${area.id} has no device")
         }
@@ -119,9 +145,17 @@ class ModelTest {
 
     @Test
     fun `device health effects sum correctly`() {
-        val w = buildDefaultWorld()
+        val aId = AreaId("A")
+        val bId = AreaId("B")
+        val w = World(
+            areas = mapOf(
+                aId to Area(aId, "Room A", setOf(bId), Device(DeviceId("d1"), "look1", "act1", 5)),
+                bId to Area(bId, "Room B", setOf(aId), Device(DeviceId("d2"), "look2", "act2", -3))
+            ),
+            startArea = aId
+        )
         val totalHealthEffect = w.areas.values.sumOf { it.device?.healthEffect ?: 0 }
-        assertEquals(8, totalHealthEffect) // +10 + 0 -5 +3 = 8
+        assertEquals(2, totalHealthEffect) // +5 + (-3) = 2
     }
 
     @Test

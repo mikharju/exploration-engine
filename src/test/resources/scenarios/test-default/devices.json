@@ -1,0 +1,14 @@
+[
+  {
+    "id": "device1",
+    "lookDescription": "A healing herb.",
+    "activateDescription": "You consume the herb. (+5)",
+    "healthEffect": 5
+  },
+  {
+    "id": "device2",
+    "lookDescription": "A wooden sign.",
+    "activateDescription": "It reads: welcome.",
+    "healthEffect": 0
+  }
+]

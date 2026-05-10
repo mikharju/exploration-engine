@@ -1,0 +1,9 @@
+{
+  "playerStart": {
+    "health": 3,
+    "maxHealth": 20,
+    "startArea": "Forest"
+  },
+  "areasFile": "areas.json",
+  "devicesFile": "devices.json"
+}

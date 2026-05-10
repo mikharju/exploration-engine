@@ -3,21 +3,18 @@ package exploration.cli
 import exploration.command.Command
 import exploration.command.parseInput
 import exploration.command.processCommand
-import exploration.model.buildDefaultWorld
-import exploration.model.Player
+import exploration.scenario.loadScenario
 import exploration.state.GameState
+import java.nio.file.Path
 
-fun playGame() {
-    val world = buildDefaultWorld()
-    var state = GameState(
-        world = world,
-        player = Player(health = 3, maxHealth = 20, currentArea = world.startArea)
-    )
+fun playGame(args: Array<String>) {
+    if (args.isEmpty()) {
+        println("Usage: exploration-engine <scenario-file>")
+        return
+    }
+    var state = loadScenario(Path.of(args[0]))
 
-    println("=== Exploration Engine ===")
-    println("Commands: look, move <area>, activate")
-    println("Goal: explore all areas and activate all devices. Don't run out of health!")
-    println()
+    printIntro()
     printStatus(state)
 
     while (!state.isOver) {
@@ -54,4 +51,11 @@ private fun printStatus(state: GameState) {
     println("[HP: ${state.player.health}/${state.player.maxHealth} [$healthBar] | Explored: ${state.exploredAreas.size}/${state.world.areas.size} | Exits: $exits]")
 }
 
-fun main() = playGame()
+private fun printIntro() {
+    println("=== Exploration Engine ===")
+    println("Commands: look, move <area>, activate")
+    println("Goal: explore all areas and activate all devices. Don't run out of health!")
+    println()
+}
+
+fun main(args: Array<String>) = playGame(args)
