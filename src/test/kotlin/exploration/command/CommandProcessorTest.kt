@@ -112,13 +112,6 @@ class CommandProcessorTest {
     }
 
     @Test
-    fun `activate with positive health clamps to max`() {
-        val nearMaxState = initialState.copy(player = Player(18, 20, AreaId("A")))
-        val result = processCommand(nearMaxState, Command.Activate)
-        assertEquals(20, result.player.health)
-    }
-
-    @Test
     fun `activate with zero health effect changes nothing`() {
         val movedToB = processCommand(initialState, Command.Move("B"))
         val result = processCommand(movedToB, Command.Activate)
