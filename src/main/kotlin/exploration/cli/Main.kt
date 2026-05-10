@@ -50,7 +50,8 @@ private fun printStatus(state: GameState) {
             append(if (i <= state.player.health / 2) "#" else ".")
         }
     }
-    println("[HP: ${state.player.health}/${state.player.maxHealth} [$healthBar] | Explored: ${state.exploredAreas.size}/${state.world.areas.size}]")
+    val exits = state.world.getArea(state.player.currentArea).connections.joinToString(", ")
+    println("[HP: ${state.player.health}/${state.player.maxHealth} [$healthBar] | Explored: ${state.exploredAreas.size}/${state.world.areas.size} | Exits: $exits]")
 }
 
 fun main() = playGame()
