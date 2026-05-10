@@ -1,11 +1,8 @@
 package exploration.port
 
 sealed class InputEvent {
-    data class Text(val text: String) : InputEvent()
     object Look : InputEvent()
     object Activate : InputEvent()
-    data class MoveDirection(val slot: DirectionSlot) : InputEvent()
+    data class Move(val areaName: String) : InputEvent()
     object Exit : InputEvent()
 }
-
-enum class DirectionSlot { W, A, S, D }

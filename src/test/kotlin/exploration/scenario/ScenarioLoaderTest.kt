@@ -1,5 +1,6 @@
 package exploration.scenario
 
+import exploration.adapter.jsonloader.loadScenarioFiles
 import exploration.model.AreaId
 import exploration.model.DeviceId
 import org.junit.jupiter.api.Test
@@ -14,7 +15,8 @@ class ScenarioLoaderTest {
 
     @Test
     fun `load valid scenario`() {
-        val state = loadScenario(resourcePath("config.json"))
+        val files = loadScenarioFiles(resourcePath("config.json"))
+        val state = assembleGame(files.config, files.areas, files.devices)
 
         assertEquals(2, state.world.areas.size)
         assertEquals(AreaId("A"), state.world.startArea)
@@ -40,7 +42,7 @@ class ScenarioLoaderTest {
     @Test
     fun `load from non-existent file throws`() {
         assertFailsWith<IllegalArgumentException> {
-            loadScenario(Path.of("/nonexistent/scenario.json"))
+            loadScenarioFiles(Path.of("/nonexistent/scenario.json"))
         }
     }
 
@@ -52,7 +54,8 @@ class ScenarioLoaderTest {
             Files.writeString(dir.resolve("areas.json"), """[{"id":"A","description":".","connections":[],"deviceId":"missing"}]""")
             Files.writeString(dir.resolve("config.json"), """{"playerStart":{"health":10,"maxHealth":20,"startArea":"A"},"areasFile":"areas.json","devicesFile":"devices.json"}""")
 
-            assertFailsWith<IllegalArgumentException> { loadScenario(dir.resolve("config.json")) }
+            val files = loadScenarioFiles(dir.resolve("config.json"))
+            assertFailsWith<IllegalArgumentException> { assembleGame(files.config, files.areas, files.devices) }
         } finally { dir.toFile().deleteRecursively() }
     }
 }

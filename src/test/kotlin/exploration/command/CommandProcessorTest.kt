@@ -143,30 +143,4 @@ class CommandProcessorTest {
         val result = processCommand(gameOver, Command.Look)
         assertTrue(result.output.contains("game is over"))
     }
-
-    @Test
-    fun `parseInput handles look command`() {
-        assertEquals(Command.Look, parseInput("look"))
-        assertEquals(Command.Look, parseInput("LOOK"))
-        assertEquals(Command.Look, parseInput("  Look  "))
-    }
-
-    @Test
-    fun `parseInput handles activate variants`() {
-        assertEquals(Command.Activate, parseInput("activate"))
-        assertEquals(Command.Activate, parseInput("use"))
-    }
-
-    @Test
-    fun `parseInput handles move with area name`() {
-        val cmd = parseInput("move Cave")
-        assertIs<Command.Move>(cmd)
-        assertEquals("Cave", cmd.areaName)
-    }
-
-    @Test
-    fun `parseInput returns null for unknown command`() {
-        assertNull(parseInput("jump"))
-        assertNull(parseInput(""))
-    }
 }

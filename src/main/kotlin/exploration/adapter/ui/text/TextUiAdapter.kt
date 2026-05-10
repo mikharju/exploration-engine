@@ -1,7 +1,6 @@
 package exploration.adapter.ui.text
 
 import exploration.port.GameEngine
-import exploration.port.InputEvent
 import exploration.port.ViewData
 
 class TextUiAdapter(private val engine: GameEngine) {
@@ -16,7 +15,13 @@ class TextUiAdapter(private val engine: GameEngine) {
             val line = readLine()?.trim() ?: break
             if (line.isEmpty()) continue
 
-            state = engine.tick(state, InputEvent.Text(line))
+            val event = parseText(line)
+                ?: run {
+                    state = state.copy(output = "Unknown command. Try: look, move <area>, activate")
+                    render(state, engine)
+                    continue
+                }
+            state = engine.tick(state, event)
             render(state, engine)
         }
 

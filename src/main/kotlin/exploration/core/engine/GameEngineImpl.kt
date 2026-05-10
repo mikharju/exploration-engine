@@ -1,7 +1,6 @@
 package exploration.core.engine
 
 import exploration.command.Command
-import exploration.command.parseInput
 import exploration.command.processCommand
 import exploration.model.AreaId
 import exploration.port.*
@@ -17,16 +16,11 @@ class GameEngineImpl(
     override fun tick(state: GameState, event: InputEvent): GameState {
         if (state.isOver) return state.copy(output = "Game is over. Restart to play again.")
 
-        val command: Command? = when (event) {
-            is InputEvent.Text -> parseInput(event.text)
+        val command: Command = when (event) {
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
-            is InputEvent.MoveDirection -> moveBySlot(state, event.slot)
+            is InputEvent.Move -> Command.Move(event.areaName)
             is InputEvent.Exit -> return state.copy(isOver = true, output = "Goodbye.", win = null)
-        }
-
-        if (command == null) {
-            return state.copy(output = "Nothing there.")
         }
 
         return processCommand(state, command)
@@ -49,16 +43,8 @@ class GameEngineImpl(
         )
     }
 
-    private fun moveBySlot(state: GameState, slot: DirectionSlot): Command? {
-        val exits = sortedExitAreaIds(state)
-        val idx = slot.ordinal
-        return if (idx < exits.size) Command.Move(exits[idx].name) else null
-    }
-
     private fun sortedExits(state: GameState): List<String> =
-        sortedExitAreaIds(state).map { it.name }
-
-    private fun sortedExitAreaIds(state: GameState): List<AreaId> =
-        state.world.getArea(state.player.currentArea).connections.toList()
-            .sortedBy { it.name.lowercase() }
+        state.world.getArea(state.player.currentArea).connections
+            .map { it.name }
+            .sortedBy { it.lowercase() }
 }

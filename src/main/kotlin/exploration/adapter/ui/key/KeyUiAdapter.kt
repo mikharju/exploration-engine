@@ -14,7 +14,8 @@ class KeyUiAdapter(private val engine: GameEngine) {
             render(state, engine)
 
             while (!engine.view(state).gameOver) {
-                val event = waitForInput()
+                val exits = engine.view(state).exits
+                val event = waitForInput(exits)
                 if (event is InputEvent.Exit) break
                 state = engine.tick(state, event)
                 render(state, engine)
@@ -94,7 +95,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
         }
     }
 
-    private fun waitForInput(): InputEvent {
+    private fun waitForInput(exits: List<String>): InputEvent {
         val stream = ttyStream ?: System.`in`
         while (true) {
             val r = stream.read()
@@ -105,10 +106,11 @@ class KeyUiAdapter(private val engine: GameEngine) {
                 else -> {
                     val lc = ch.lowercaseChar()
                     when (lc) {
-                        'w' -> return InputEvent.MoveDirection(DirectionSlot.W)
-                        'a' -> return InputEvent.MoveDirection(DirectionSlot.A)
-                        's' -> return InputEvent.MoveDirection(DirectionSlot.S)
-                        'd' -> return InputEvent.MoveDirection(DirectionSlot.D)
+                        'w', 'a', 's', 'd' -> {
+                            val idx = listOf('w', 'a', 's', 'd').indexOf(lc)
+                            return exits.getOrNull(idx)?.let { InputEvent.Move(it) }
+                                ?: InputEvent.Look
+                        }
                         'l' -> return InputEvent.Look
                         'u' -> return InputEvent.Activate
                         'q' -> return InputEvent.Exit

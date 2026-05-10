@@ -2,28 +2,8 @@ package exploration.scenario
 
 import exploration.model.*
 import exploration.state.GameState
-import kotlinx.serialization.json.Json
-import java.nio.file.Path
 
-private val json = Json { ignoreUnknownKeys = true }
-
-fun loadScenario(configPath: Path): GameState {
-    require(configPath.toFile().exists()) { "Scenario file not found: $configPath" }
-    require(configPath.toFile().isFile) { "Not a file: $configPath" }
-
-    val config = json.decodeFromString<ScenarioConfig>(configPath.toFile().readText())
-    val baseDir = configPath.parent
-        ?: throw IllegalArgumentException("Cannot determine parent directory of: $configPath")
-
-    val devicesPath = baseDir.resolve(config.devicesFile)
-    require(devicesPath.toFile().exists()) { "Devices file not found: $devicesPath" }
-
-    val areasPath = baseDir.resolve(config.areasFile)
-    require(areasPath.toFile().exists()) { "Areas file not found: $areasPath" }
-
-    val deviceEntries = json.decodeFromString<List<DeviceEntry>>(devicesPath.toFile().readText())
-    val areaEntries = json.decodeFromString<List<AreaEntry>>(areasPath.toFile().readText())
-
+fun assembleGame(config: ScenarioConfig, areaEntries: List<AreaEntry>, deviceEntries: List<DeviceEntry>): GameState {
     val deviceMap = mutableMapOf<String, Device>()
     for (entry in deviceEntries) {
         deviceMap[entry.id] = Device(
