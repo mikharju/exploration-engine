@@ -2,10 +2,11 @@ package exploration.cli
 
 import exploration.adapter.jsonloader.JsonScenarioRepository
 import exploration.adapter.ui.key.KeyUiAdapter
+import exploration.adapter.ui.lanterna.LanternaUiAdapter
 import exploration.adapter.ui.text.TextUiAdapter
 import exploration.core.engine.GameEngineImpl
 
-enum class UiMode { TEXT, KEY }
+enum class UiMode { TEXT, KEY, LANTERNA }
 
 fun main(args: Array<String>) {
     val (mode, scenarioPath) = parseArgs(args)
@@ -14,8 +15,9 @@ fun main(args: Array<String>) {
     val engine = GameEngineImpl(JsonScenarioRepository())
 
     when (mode) {
-        UiMode.TEXT -> TextUiAdapter(engine).run(scenarioPath)
-        UiMode.KEY  -> KeyUiAdapter(engine).run(scenarioPath)
+        UiMode.TEXT     -> TextUiAdapter(engine).run(scenarioPath)
+        UiMode.KEY      -> KeyUiAdapter(engine).run(scenarioPath)
+        UiMode.LANTERNA -> LanternaUiAdapter(engine).run(scenarioPath)
     }
 }
 

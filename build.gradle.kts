@@ -11,6 +11,7 @@ repositories {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("org.fusesource.jansi:jansi:2.4.1")
+    implementation("com.googlecode.lanterna:lanterna:3.1.2")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
 }
