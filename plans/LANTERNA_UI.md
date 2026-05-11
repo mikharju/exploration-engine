@@ -9,17 +9,17 @@ GUI layer gives widgets but feels foreign for a game. Screen layer provides doub
 ## Layout (fixed regions, redraws each turn)
 
 ```
-┌──────────────────────────────────────┐  ← Title row (bold cyan)
-│   Exploration Engine                 │
-├──────────────────────────────────────┤
-│                                      │
-│   You move to the Cave.              │  ← Message area (10-msg ring buffer,
-│   The air is damp and cold...        │     word-wrapped, scrolls upward)
-│                                      │
-├──────────────────────────────────────┤
-│ ████░░ 4/8  Exp:2/4  Dev:1/3        │  ← Status bar (green/red HP bar)
-│ [w] Cave  [a] Forest  [s] Ruins     │  ← Exit bindings (yellow bold keys)
-└──────────────────────────────────────┘
+┌──────────────────────────────────────────────┐  ← Title row (bold cyan)
+│     Exploration Engine                       │
+│                                              │
+│   You move to the Cave.                      │  ← Message area (10-msg ring buffer,
+│   The air is damp and cold...                │     word-wrapped, scrolls upward)
+│                                              │
+├──────────────────────────────────────────────┤
+│             [w] Cave                         │  ← Direction pad (arrow-cross layout)
+│  [a] Forest  [s] Ruins  [d] Tower            │     centered horizontally
+│           ██████░░ 15/20 Exp:2/4 Dev:1/3    │  ← Status bar (right-aligned, HP + stats)
+└──────────────────────────────────────────────┘
 ```
 
 ## Regions
@@ -27,16 +27,37 @@ GUI layer gives widgets but feels foreign for a game. Screen layer provides doub
 | Region | Row(s) | Content |
 |---|---|---|
 | Title | 0 | Centered, bold cyan "Exploration Engine" |
-| Messages | 1 .. h-4 | Ring buffer of last 10 messages, word-wrapped to `w-2`. Oldest scroll off top. |
-| Separator | h-3 | Horizontal line (`─`) |
-| Status | h-2 | HP bar (█ green / ░ red), health numbers, explored count, device count |
-| Exits | h-1 | `[w]`, `[a]`, `[s]`, `[d]` bindings mapped to alphabetically sorted exits |
+| Messages | 1 .. h-5 | Ring buffer of last 10 messages, word-wrapped to `w-2`. Oldest scroll off top. |
+| Separator | h-4 | Horizontal line (`─`) |
+| Direction pad | h-3 | `[W]` centered above — arrow-cross layout matching keyboard arrows |
+| Direction pad | h-2 | `[A] [S] [D]` in a row, exit names beside each key. Inactive slots dimmed gray with `.` placeholder. Centered horizontally within border. |
+| Status | h-1 | HP bar (█ green / ░ red), health numbers, explored/device count — right-aligned |
+
+### Min Terminal Size
+
+Minimum: **60 columns × 20 rows**. Ensures direction pad labels and status stats fit without complex wrapping logic.
+
+If the terminal is smaller, a centered message replaces the game layout:
+
+```
+┌─────────────────────┐
+│                     │
+│  Terminal too small.│
+│  Resize to at least │
+│  60 columns,        │
+│  20 rows.           │
+│                     │
+└─────────────────────┘
+```
+
+Game loop keeps running — layout resumes automatically when the terminal resizes above minimum via `doResizeIfNecessary()`.
 
 ## Key Bindings (same as KeyUiAdapter)
 
 | Key | Action |
 |---|---|
 | w/a/s/d | Move — 1st–4th exit in alphabetical order |
+| ↑/↓/←/→ | Same as w/a/s/d respectively |
 | l | Look |
 | u | Activate device |
 | q / Esc | Quit |
@@ -72,7 +93,7 @@ Simple greedy wrap at `w-2` columns. Long words without spaces hard-break. Empty
 | File | Change |
 |---|---|
 | `build.gradle.kts` | Add `lanterna:3.1.2` dependency |
-| `adapter/ui/lanterna/LanternaUiAdapter.kt` | New — single class, ~200 lines, all rendering + input |
+| `adapter/ui/lanterna/LanternaUiAdapter.kt` | Single class, ~260 lines: direction pad, status, messages, min-size guard, input mapping |
 | `cli/Main.kt` | Add `UiMode.LANTERNA`, wire adapter into `when` |
 
 ## CLI Usage
