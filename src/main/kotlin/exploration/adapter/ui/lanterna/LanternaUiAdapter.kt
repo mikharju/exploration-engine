@@ -49,7 +49,16 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             render(screen, engine.view(state), history)
         }
 
+        val finalView = engine.view(state)
+        addMessage(
+            history,
+            if (finalView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ==="
+        )
+        screen.doResizeIfNecessary()
+        render(screen, finalView, history)
+
         screen.stopScreen()
+        printEndSummary(finalView, history)
     }
 
     private fun readInputKey(screen: Screen, exits: List<String>): InputEvent {
@@ -263,5 +272,17 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             g.putString(col, startRow + i, line)
         }
         g.disableModifiers(SGR.BOLD)
+    }
+
+    private fun printEndSummary(view: ViewData, history: List<String>) {
+        val result = if (view.win == true) "YOU WIN!" else "GAME OVER"
+        println("\n===== $result =====")
+        println("Area  : ${view.currentAreaName}")
+        println("Health: ${view.health}/${view.maxHealth}")
+        println("Explored: ${view.exploredCount}/${view.totalAreas}  |  Devices: ${view.activatedCount}/${view.totalDevices}")
+        if (history.isNotEmpty()) {
+            println("\n--- Last messages ---")
+            for (msg in history) println(msg)
+        }
     }
 }
