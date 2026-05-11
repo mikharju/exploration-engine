@@ -8,6 +8,7 @@ import com.googlecode.lanterna.input.KeyType
 import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.TerminalScreen
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory
+import exploration.model.StatusRange
 import exploration.port.GameEngine
 import exploration.port.InputEvent
 import exploration.port.ViewData
@@ -16,8 +17,8 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
     companion object {
         private const val MAX_MESSAGES = 10
-        private const val MIN_WIDTH = 60
-        private const val MIN_HEIGHT = 20
+        private const val MIN_WIDTH = 64
+        private const val MIN_HEIGHT = 23
     }
 
     fun run(scenarioId: String) {
@@ -108,12 +109,21 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             return
         }
 
+        val leftWidth = ((w - 3) * 0.6).toInt()
+        val rightWidth = (w - 3) - leftWidth
+        val splitCol = 1 + leftWidth
+        val panelStartRow = 3
+        val panelEndRow = h - 6
+
         drawBorder(g, w, h)
         drawTitle(g, w)
-        drawMessages(g, history, TerminalPosition(1, 1), w - 2, h - 6)
-        g.drawLine(0, h - 4, w - 1, h - 4, '─')
+        drawPanelHeaders(g, leftWidth, rightWidth, splitCol)
+        drawSeparatorLine(g, w, splitCol, panelStartRow - 1)
+        drawMessagesPanel(g, history, TerminalPosition(1, panelStartRow), leftWidth, h - panelStartRow - 3)
+        drawStatusesPanel(g, view, TerminalPosition(splitCol + 1, panelStartRow), rightWidth - 1, h - panelStartRow - 3)
+        drawVerticalSeparator(g, splitCol, 2, h - 6)
+        drawSplitSeparator(g, w, splitCol, h - 5)
         drawDirectionPad(g, view.exits, w - 2, h - 3)
-        drawStatusRight(g, view, TerminalPosition(1, h - 2), w - 2)
 
         screen.refresh()
     }
@@ -142,7 +152,53 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         g.disableModifiers(SGR.BOLD)
     }
 
-    private fun drawMessages(
+    private fun drawPanelHeaders(g: TextGraphics, leftWidth: Int, rightWidth: Int, splitCol: Int) {
+        val msgHeader = " Messages"
+        g.enableModifiers(SGR.BOLD)
+        g.foregroundColor = TextColor.ANSI.WHITE
+        g.putString(1, 1, msgHeader)
+
+        val statusHeader = " Statuses"
+        val rightStart = splitCol + 1
+        g.putString(rightStart, 1, statusHeader)
+        g.disableModifiers(SGR.BOLD)
+
+        for (col in 1 until splitCol) {
+            if (col < 1 + leftWidth && col > 0) {
+                g.setCharacter(col, 2, '─')
+            }
+        }
+        g.setCharacter(splitCol, 2, '│')
+        for (col in splitCol + 1 until splitCol + rightWidth) {
+            if (col < 1 + leftWidth + rightWidth - 1) {
+                g.setCharacter(col, 2, '─')
+            }
+        }
+    }
+
+    private fun drawSeparatorLine(g: TextGraphics, w: Int, splitCol: Int, row: Int) {
+        for (col in 0 until w) {
+            if (col == splitCol) g.setCharacter(col, row, '┼')
+            else g.setCharacter(col, row, '─')
+        }
+    }
+
+    private fun drawVerticalSeparator(g: TextGraphics, col: Int, startRow: Int, count: Int) {
+        for (row in startRow until startRow + count) {
+            if (row > 0 && row < count + startRow - 1) {
+                g.setCharacter(col, row, '│')
+            }
+        }
+    }
+
+    private fun drawSplitSeparator(g: TextGraphics, w: Int, splitCol: Int, row: Int) {
+        for (col in 0 until w) {
+            if (col == splitCol) g.setCharacter(col, row, '┼')
+            else g.setCharacter(col, row, '─')
+        }
+    }
+
+    private fun drawMessagesPanel(
         g: TextGraphics,
         history: List<String>,
         top: TerminalPosition,
@@ -161,6 +217,67 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             g.putString(top.column, row, lines[i].padEnd(width))
             row++
         }
+    }
+
+    private fun drawStatusesPanel(
+        g: TextGraphics,
+        v: ViewData,
+        top: TerminalPosition,
+        width: Int,
+        maxRows: Int
+    ) {
+        val hpLine = buildHpBar(v, width)
+        g.putString(top.column, top.row, hpLine.padEnd(width))
+
+        val progLine = " Exp: ${v.exploredCount}/${v.totalAreas}   Dev: ${v.activatedCount}/${v.totalDevices}"
+        g.putString(top.column, top.row + 1, progLine.padEnd(width))
+
+        val statuses = v.statuses.filterValues { it != 0 }
+        if (statuses.isEmpty()) return
+
+        val statusLines = mutableListOf<String>()
+        for ((name, value) in statuses) {
+            val range = v.statusBounds[name]
+            val text = formatStatus(name, value, range, width)
+            statusLines.add(text)
+        }
+
+        val availableRows = maxRows - 2
+        var row = top.row + 2
+        for ((i, line) in statusLines.withIndex()) {
+            if (row >= top.row + maxRows) break
+            val displayLine = if (i < availableRows) line else "(more...)"
+            g.putString(top.column, row, displayLine.padEnd(width))
+            row++
+        }
+    }
+
+    private fun buildHpBar(v: ViewData, width: Int): String {
+        val barLen = 10
+        val filled = ((v.health.toDouble() / v.maxHealth) * barLen).toInt().coerceIn(0, barLen)
+        val empty = barLen - filled
+
+        val bar = "█".repeat(filled) + "░".repeat(empty)
+        val textPart = "${v.health}/${v.maxHealth}"
+        return "$bar $textPart"
+    }
+
+    private fun formatStatus(name: String, value: Int, range: StatusRange?, width: Int): String {
+        val maxLen = width - 10
+        val displayValue = if (range != null && range.max != Int.MAX_VALUE) {
+            "$value/${range.max}"
+        } else {
+            "$value"
+        }
+        val template = ": $displayValue"
+        val nameMaxLen = maxOf(4, width - template.length)
+
+        val displayName = if (name.length > nameMaxLen) {
+            name.substring(0, nameMaxLen - 3) + "..."
+        } else {
+            name
+        }
+        return "$displayName$template"
     }
 
     private fun wrapText(text: String, width: Int): List<String> {
@@ -191,28 +308,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         }
         if (line.isNotEmpty()) result.add(line)
         return result.ifEmpty { listOf("") }
-    }
-
-    private fun drawStatusRight(g: TextGraphics, v: ViewData, pos: TerminalPosition, width: Int = 0) {
-        val barLen = 10
-        val filled = ((v.health.toDouble() / v.maxHealth) * barLen).toInt().coerceIn(0, barLen)
-        val empty = barLen - filled
-
-        val text = " ${v.health}/${v.maxHealth}  Exp:${v.exploredCount}/${v.totalAreas}  Dev:${v.activatedCount}/${v.totalDevices}"
-        val totalWidth = barLen + 1 + text.length
-        var startCol = pos.column
-        if (width > 0) {
-            startCol = (pos.column + width - totalWidth).coerceAtLeast(pos.column)
-        }
-
-        g.foregroundColor = TextColor.ANSI.GREEN
-        repeat(filled) { g.setCharacter(startCol + it, pos.row, '█') }
-        g.foregroundColor = TextColor.ANSI.RED
-        repeat(empty) { g.setCharacter(startCol + barLen + it, pos.row, '░') }
-
-        g.foregroundColor = TextColor.ANSI.WHITE
-        g.setCharacter(startCol + barLen, pos.row, ' ')
-        g.putString(TerminalPosition(startCol + barLen + 1, pos.row), text)
     }
 
     private fun drawDirectionPad(
@@ -280,6 +375,12 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         println("Area  : ${view.currentAreaName}")
         println("Health: ${view.health}/${view.maxHealth}")
         println("Explored: ${view.exploredCount}/${view.totalAreas}  |  Devices: ${view.activatedCount}/${view.totalDevices}")
+        if (view.statuses.isNotEmpty()) {
+            val statusLines = view.statuses.filterValues { it != 0 }.map { (name, value) ->
+                "$name=$value"
+            }
+            println("Statuses: ${statusLines.joinToString(", ")}")
+        }
         if (history.isNotEmpty()) {
             println("\n--- Last messages ---")
             for (msg in history) println(msg)

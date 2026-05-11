@@ -5,5 +5,12 @@
     "startArea": "Forest"
   },
   "areasFile": "areas.json",
-  "devicesFile": "devices.json"
+  "devicesFile": "devices.json",
+  "statuses": {
+    "corruption": {
+      "initial": 0,
+      "min": 0,
+      "max": 100
+    }
+  }
 }

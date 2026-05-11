@@ -16,11 +16,19 @@ data class PlayerStart(
 }
 
 @Serializable
+data class StatusEntry(
+    val initial: Int,
+    val min: Int = 0,
+    val max: Int = Int.MAX_VALUE
+)
+
+@Serializable
 data class DeviceEntry(
     val id: String,
     val lookDescription: String,
     val activateDescription: String,
-    val healthEffect: Int = 0
+    val healthEffect: Int = 0,
+    val statusEffects: Map<String, Int> = emptyMap()
 )
 
 @Serializable
@@ -35,5 +43,6 @@ data class AreaEntry(
 data class ScenarioConfig(
     val playerStart: PlayerStart,
     val areasFile: String,
-    val devicesFile: String
+    val devicesFile: String,
+    val statuses: Map<String, StatusEntry> = emptyMap()
 )

@@ -71,16 +71,30 @@ private fun processActivate(state: GameState): GameState {
         return state.copy(output = "${device.id} has already been activated.")
     }
 
-    val newPlayer = state.player.adjustHealth(device.healthEffect)
-    val healthMsg = when (device.healthEffect) {
-        0 -> ""
-        in 1..Int.MAX_VALUE -> " (+${device.healthEffect} health)"
-        else -> " (${device.healthEffect} health)"
+    var player = state.player
+    val msgs = mutableListOf<String>()
+
+    player = player.adjustHealth(device.healthEffect)
+    when (device.healthEffect) {
+        0 -> {}
+        in 1..Int.MAX_VALUE -> msgs.add("+${device.healthEffect} health")
+        else -> msgs.add("${device.healthEffect} health")
     }
 
+    for ((name, amount) in device.statusEffects) {
+        val oldVal = player.statuses.getOrElse(name) { 0 }
+        player = player.adjustStatus(name, amount, state.statusBounds[name])
+        val newVal = player.statuses.getValue(name)
+        if (amount != 0 || newVal != oldVal) {
+            msgs.add("$name: $newVal")
+        }
+    }
+
+    val suffix = if (msgs.isNotEmpty()) " (${msgs.joinToString(", ")})" else ""
+
     return state.copy(
-        player = newPlayer,
+        player = player,
         activatedDevices = state.activatedDevices + device.id,
-        output = "${device.activateDescription}$healthMsg"
+        output = "${device.activateDescription}$suffix"
     )
 }

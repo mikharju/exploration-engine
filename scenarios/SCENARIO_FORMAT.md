@@ -17,12 +17,16 @@ Entry point with player starting state and file references.
 | `playerStart.startArea` | string | yes | Must match an area `id` |
 | `areasFile` | string | yes | Relative to config location |
 | `devicesFile` | string | yes | Relative to config location |
+| `statuses` | object | no | Optional status indicators. Keys are names, values have `initial`, `min`, `max` |
 
 ```json
 {
   "playerStart": { "health": 3, "maxHealth": 20, "startArea": "Forest" },
   "areasFile": "areas.json",
-  "devicesFile": "devices.json"
+  "devicesFile": "devices.json",
+  "statuses": {
+    "corruption": { "initial": 0, "min": 0, "max": 100 }
+  }
 }
 ```
 
@@ -54,12 +58,28 @@ JSON array of device objects. Placed in exactly one area.
 | `lookDescription` | string | yes | Shown on "look" for unactivated device |
 | `activateDescription` | string | yes | Shown on activation |
 | `healthEffect` | int | no | Health change on activate. **Default: 0** |
+| `statusEffects` | object | no | Map of status names to integer deltas applied on activation. Values are clamped per-status. **Default: empty** |
 
 ```json
 [
-  { "id": "Crystal", "lookDescription": "...", "activateDescription": "...", "healthEffect": 10 },
+  { "id": "Crystal", "lookDescription": "...", "activateDescription": "...", "healthEffect": 10, "statusEffects": { "corruption": -5 } },
   { "id": "Glyph Wall", "lookDescription": "...", "activateDescription": "...", "healthEffect": 0 }
 ]
+```
+
+## Statuses (`statuses` in config)
+
+Optional numeric indicators beyond health. Each status has a name, starting value, and clamped range.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `<name>.initial` | int | yes | Starting value for the player |
+| `<name>.min` | int | yes | Lower clamp bound |
+| `<name>.max` | int | yes | Upper clamp bound |
+
+Status values are clamped to `[min, max]` after every adjustment. Win/lose conditions remain health-only — statuses don't affect game outcome directly.
+
+**Example:** A `corruption` status with `{ "initial": 0, "min": 0, "max": 100 }` starts at 0. A device with `"statusEffects": { "corruption": 15 }` raises it to 15 (capped at 100).
 ```
 
 ## Validation & Rules
@@ -68,8 +88,10 @@ Engine throws `IllegalArgumentException` on load if violated:
 - `startArea`, all `connections`, and all `deviceId` references must exist
 - `health ≥ 0`, `maxHealth > 0`, `health ≤ maxHealth`
 - File paths resolve relative to the config file directory (subdirs supported)
+- Status `min < max` for each defined status; `initial` must be within `[min, max]`
+- Keys in device `statusEffects` must match a declared status name
 
-**Win**: visited every area + activated every device. **Lose**: health ≤ 0 (clamped to [0, maxHealth]).
+**Win**: visited every area + activated every device. **Lose**: health ≤ 0 (clamped to [0, maxHealth]). Statuses don't affect win/lose.
 
 ---
 
@@ -87,3 +109,4 @@ Engine throws `IllegalArgumentException` on load if violated:
 - Mismatched `deviceId` strings (case-sensitive)
 - Unreachable areas making the scenario unwinnable
 - Referencing a device that doesn't exist in devicesFile
+- Referencing a status name in `statusEffects` that isn't declared in config `statuses`

@@ -4,13 +4,21 @@ import exploration.model.*
 import exploration.state.GameState
 
 fun assembleGame(config: ScenarioConfig, areaEntries: List<AreaEntry>, deviceEntries: List<DeviceEntry>): GameState {
+    val statusInitial = mutableMapOf<String, Int>()
+    val statusBounds = mutableMapOf<String, StatusRange>()
+    for ((name, entry) in config.statuses) {
+        statusInitial[name] = entry.initial
+        statusBounds[name] = StatusRange(entry.min, entry.max)
+    }
+
     val deviceMap = mutableMapOf<String, Device>()
     for (entry in deviceEntries) {
         deviceMap[entry.id] = Device(
             id = DeviceId(entry.id),
             lookDescription = entry.lookDescription,
             activateDescription = entry.activateDescription,
-            healthEffect = entry.healthEffect
+            healthEffect = entry.healthEffect,
+            statusEffects = entry.statusEffects
         )
     }
 
@@ -53,8 +61,9 @@ fun assembleGame(config: ScenarioConfig, areaEntries: List<AreaEntry>, deviceEnt
     val player = Player(
         health = config.playerStart.health,
         maxHealth = config.playerStart.maxHealth,
-        currentArea = startId
+        currentArea = startId,
+        statuses = statusInitial
     )
 
-    return GameState(world = world, player = player)
+    return GameState(world = world, player = player, statusBounds = statusBounds)
 }

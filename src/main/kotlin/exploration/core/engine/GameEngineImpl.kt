@@ -38,6 +38,8 @@ class GameEngineImpl(
             activatedCount = state.activatedDevices.size,
             totalDevices = state.allDeviceIds().size,
             exits = sortedExits(state),
+            statuses = state.player.statuses.filterValues { it != 0 },
+            statusBounds = state.statusBounds,
             gameOver = state.isOver,
             win = state.win
         )

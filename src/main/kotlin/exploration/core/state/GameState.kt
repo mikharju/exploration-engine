@@ -5,6 +5,8 @@ import exploration.model.DeviceId
 import exploration.model.Player
 import exploration.model.World
 
+import exploration.model.StatusRange
+
 data class GameState(
     val world: World,
     val player: Player,
@@ -12,7 +14,8 @@ data class GameState(
     val activatedDevices: Set<DeviceId> = emptySet(),
     val output: String = "",
     val isOver: Boolean = false,
-    val win: Boolean? = null
+    val win: Boolean? = null,
+    val statusBounds: Map<String, StatusRange> = emptyMap()
 ) {
     fun allDeviceIds(): Set<DeviceId> {
         val devices = mutableSetOf<DeviceId>()

@@ -2,8 +2,9 @@
   {
     "id": "Crystal",
     "lookDescription": "A glowing crystal pulses with soft blue light.",
-    "activateDescription": "The crystal flares brightly, warmth flooding through you. (+10 health)",
-    "healthEffect": 10
+    "activateDescription": "The crystal flares brightly, warmth flooding through you.",
+    "healthEffect": 10,
+    "statusEffects": {"corruption": -5}
   },
   {
     "id": "Glyph Wall",
@@ -14,13 +15,14 @@
   {
     "id": "Ancient Machine",
     "lookDescription": "A rusted machine hums with unstable energy.",
-    "activateDescription": "The machine whirs violently, discharging a burst of raw power. (-5 health)",
-    "healthEffect": -5
+    "activateDescription": "The machine whirs violently, discharging a burst of raw power.",
+    "healthEffect": -5,
+    "statusEffects": {"corruption": 15}
   },
   {
     "id": "Orb",
     "lookDescription": "A smooth obsidian orb sits on a stone pedestal.",
-    "activateDescription": "The orb cracks open, releasing warm light that strengthens you. (+3 health)",
+    "activateDescription": "The orb cracks open, releasing warm light that strengthens you.",
     "healthEffect": 3
   }
 ]

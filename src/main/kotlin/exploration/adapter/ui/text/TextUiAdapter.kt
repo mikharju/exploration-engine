@@ -40,8 +40,11 @@ class TextUiAdapter(private val engine: GameEngine) {
                 append(if (i <= v.health / 2) "#" else ".")
             }
         }
+        val statusStr = if (v.statuses.isNotEmpty()) {
+            " | ${v.statuses.entries.joinToString(" | ") { (k, n) -> "${k.replaceFirstChar { c -> c.uppercaseChar() }}: $n" }}"
+        } else ""
         val exits = if (v.exits.isEmpty()) "(none)" else v.exits.joinToString(", ")
-        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exits]")
+        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exits]$statusStr")
     }
 
     private fun printIntro() {
