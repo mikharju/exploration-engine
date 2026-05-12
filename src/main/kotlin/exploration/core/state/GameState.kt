@@ -6,17 +6,22 @@ import exploration.model.Player
 import exploration.model.World
 
 import exploration.model.StatusRange
+import exploration.model.Trigger
 
 data class GameState(
     val world: World,
     val player: Player,
     val exploredAreas: Set<AreaId> = emptySet(),
     val activatedDevices: Set<DeviceId> = emptySet(),
-    val output: String = "",
+    val commandOutput: String = "",
+    val triggerTexts: List<String> = emptyList(),
     val isOver: Boolean = false,
     val win: Boolean? = null,
-    val statusBounds: Map<String, StatusRange> = emptyMap()
+    val statusBounds: Map<String, StatusRange> = emptyMap(),
+    val turn: Int = 0,
+    val triggers: List<Trigger> = emptyList()
 ) {
+    val output: String get() = if (triggerTexts.isEmpty()) commandOutput else "$commandOutput\n${triggerTexts.joinToString("\n")}"
     fun allDeviceIds(): Set<DeviceId> {
         val devices = mutableSetOf<DeviceId>()
         for (area in world.areas.values) {
@@ -29,8 +34,8 @@ data class GameState(
         val allExplored = exploredAreas == world.areas.keys
         val allActivated = activatedDevices.containsAll(allDeviceIds())
         when {
-            player.health <= 0 -> copy(isOver = true, win = false, output = "You collapse from exhaustion... Game Over.")
-            allExplored && allActivated -> copy(isOver = true, win = true, output = "You've explored every corner and activated every device. Victory!")
+            player.health <= 0 -> copy(isOver = true, win = false, commandOutput = "You collapse from exhaustion... Game Over.")
+            allExplored && allActivated -> copy(isOver = true, win = true, commandOutput = "You've explored every corner and activated every device. Victory!")
             else -> this
         }
     } else this

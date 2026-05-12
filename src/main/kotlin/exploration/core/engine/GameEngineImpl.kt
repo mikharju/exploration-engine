@@ -14,13 +14,14 @@ class GameEngineImpl(
         scenarioRepo.load(scenarioId)
 
     override fun tick(state: GameState, event: InputEvent): GameState {
-        if (state.isOver) return state.copy(output = "Game is over. Restart to play again.")
+        if (state.isOver) return state.copy(commandOutput = "Game is over. Restart to play again.")
 
         val command: Command = when (event) {
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
             is InputEvent.Move -> Command.Move(event.areaName)
-            is InputEvent.Exit -> return state.copy(isOver = true, output = "Goodbye.", win = null)
+            is InputEvent.InvalidMove -> return state.copy(commandOutput = "Can't move that way.")
+            is InputEvent.Exit -> return state.copy(isOver = true, commandOutput = "Goodbye.", win = null)
         }
 
         return processCommand(state, command)
@@ -29,7 +30,9 @@ class GameEngineImpl(
     override fun view(state: GameState): ViewData {
         val area = state.world.getArea(state.player.currentArea)
         return ViewData(
-            outputLine = state.output,
+            commandText = state.commandOutput,
+            triggerTexts = state.triggerTexts,
+            outputLine = if (state.triggerTexts.isEmpty()) state.commandOutput else "${state.commandOutput}\n${state.triggerTexts.joinToString("\n")}",
             health = state.player.health,
             maxHealth = state.player.maxHealth,
             currentAreaName = area.id.name,

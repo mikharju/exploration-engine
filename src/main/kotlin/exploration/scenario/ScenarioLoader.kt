@@ -1,9 +1,15 @@
 package exploration.scenario
 
+import exploration.core.engine.fireAreaTriggers
 import exploration.model.*
 import exploration.state.GameState
 
-fun assembleGame(config: ScenarioConfig, areaEntries: List<AreaEntry>, deviceEntries: List<DeviceEntry>): GameState {
+fun assembleGame(
+    config: ScenarioConfig,
+    areaEntries: List<AreaEntry>,
+    deviceEntries: List<DeviceEntry>,
+    triggerEntries: List<TriggerEntry> = emptyList()
+): GameState {
     val statusInitial = mutableMapOf<String, Int>()
     val statusBounds = mutableMapOf<String, StatusRange>()
     for ((name, entry) in config.statuses) {
@@ -65,5 +71,51 @@ fun assembleGame(config: ScenarioConfig, areaEntries: List<AreaEntry>, deviceEnt
         statuses = statusInitial
     )
 
-    return GameState(world = world, player = player, statusBounds = statusBounds)
+    val triggers = triggerEntries.map { entry ->
+        Trigger(
+            id = entry.id,
+            ownerType = OwnerType.valueOf(entry.ownerType),
+            ownerId = entry.ownerId,
+            conditions = entry.conditions.map { cond ->
+                ActivationCondition(
+                    statusName = cond.statusName,
+                    op = when (cond.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("Unknown operator: ${cond.op}") },
+                    threshold = cond.threshold
+                )
+            },
+            effects = entry.effects.map { ef ->
+                when (ef.type) {
+                    "displayText" -> Effect.DisplayText(checkNotNull(ef.text))
+                    "changeHealth" -> Effect.ChangeHealth(checkNotNull(ef.amount))
+                    "adjustStatus" -> Effect.AdjustStatus(checkNotNull(ef.statusName), checkNotNull(ef.amount))
+                    "setStatus" -> Effect.SetStatus(checkNotNull(ef.statusName), checkNotNull(ef.value))
+                    else -> error("Unknown effect type: ${ef.type}")
+                }
+            },
+            singleUse = entry.singleUse,
+            intervalTurns = entry.intervalTurns
+        )
+    }
+
+    val deviceIds = deviceMap.keys.toSet()
+    for (trigger in triggers) {
+        when (trigger.ownerType) {
+            OwnerType.AREA -> require(trigger.ownerId in areaIds) {
+                "Trigger '${trigger.id}' references unknown area: ${trigger.ownerId}"
+            }
+            OwnerType.DEVICE -> require(trigger.ownerId in deviceIds) {
+                "Trigger '${trigger.id}' references unknown device: ${trigger.ownerId}"
+            }
+            OwnerType.STATUS -> {}
+        }
+    }
+
+    val state = GameState(
+        world = world,
+        player = player,
+        statusBounds = statusBounds,
+        triggers = triggers
+    )
+
+    return fireAreaTriggers(state, startId.name)
 }

@@ -25,4 +25,13 @@ data class Player(
         }
         return copy(statuses = statuses + (name to newValue))
     }
+
+    fun setStatus(name: String, value: Int, range: StatusRange?): Player {
+        val newValue = if (range != null) {
+            minOf(range.max, maxOf(range.min, value))
+        } else {
+            value
+        }
+        return copy(statuses = statuses + (name to newValue))
+    }
 }

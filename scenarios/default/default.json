@@ -12,5 +12,6 @@
       "min": 0,
       "max": 100
     }
-  }
+  },
+  "triggersFile": "triggers.json"
 }

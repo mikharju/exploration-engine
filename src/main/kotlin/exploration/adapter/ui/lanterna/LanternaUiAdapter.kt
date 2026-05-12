@@ -15,6 +15,8 @@ import exploration.port.ViewData
 
 class LanternaUiAdapter(private val engine: GameEngine) {
 
+    data class HistoryEntry(val text: String, val isTrigger: Boolean)
+
     companion object {
         private const val MAX_MESSAGES = 10
         private const val MIN_WIDTH = 64
@@ -26,17 +28,20 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         screen.startScreen()
         screen.cursorPosition = null
 
-        val history = mutableListOf<String>()
+        val history = mutableListOf<HistoryEntry>()
+        var shownTriggers = 0
 
         var state = engine.start(scenarioId)
-        addMessage(history, "=== Exploration Engine (Lanterna) ===")
+        addMessage(history, "=== Exploration Engine (Lanterna) ===", false)
         addMessage(
             history,
-            "arrows/wasd: move | l: look | u: activate | q/esc: quit"
+            "arrows/wasd: move | l: look | u: activate | q/esc: quit",
+            false
         )
         addMessage(
             history,
-            "Goal: explore all areas and activate all devices. Don't run out of health!"
+            "Goal: explore all areas and activate all devices. Don't run out of health!",
+            false
         )
 
         render(screen, engine.view(state), history)
@@ -46,14 +51,25 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             val event = readInputKey(screen, engine.view(state).exits)
             if (event is InputEvent.Exit) break
             state = engine.tick(state, event)
-            addMessage(history, engine.view(state).outputLine)
-            render(screen, engine.view(state), history)
+            val view = engine.view(state)
+            if (view.commandText.isNotBlank()) addMessage(history, view.commandText, false)
+            val newTriggerCount = view.triggerTexts.size - shownTriggers
+            for (i in 0 until newTriggerCount) {
+                val triggerText = view.triggerTexts[shownTriggers + i]
+                if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
+            }
+            shownTriggers = view.triggerTexts.size
+            render(screen, view, history)
         }
 
         val finalView = engine.view(state)
+        for (i in shownTriggers until finalView.triggerTexts.size) {
+            if (finalView.triggerTexts[i].isNotBlank()) addMessage(history, finalView.triggerTexts[i], true)
+        }
         addMessage(
             history,
-            if (finalView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ==="
+            if (finalView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ===",
+            false
         )
         screen.doResizeIfNecessary()
         render(screen, finalView, history)
@@ -66,15 +82,15 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val key = screen.readInput() ?: return InputEvent.Exit
         when (key.keyType) {
             KeyType.Escape -> return InputEvent.Exit
-            KeyType.ArrowUp -> exitMove(exits, 0)
-            KeyType.ArrowDown -> exitMove(exits, 2)
-            KeyType.ArrowLeft -> exitMove(exits, 1)
-            KeyType.ArrowRight -> exitMove(exits, 3)
+            KeyType.ArrowUp -> return exitMove(exits, 0)
+            KeyType.ArrowDown -> return exitMove(exits, 2)
+            KeyType.ArrowLeft -> return exitMove(exits, 1)
+            KeyType.ArrowRight -> return exitMove(exits, 3)
             KeyType.Character -> {
                 when (key.character.lowercaseChar()) {
                     'w', 'a', 's', 'd' -> {
                         val idx = listOf('w', 'a', 's', 'd').indexOf(key.character.lowercaseChar())
-                        return exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.Look
+                        return exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.InvalidMove
                     }
                     'l' -> return InputEvent.Look
                     'u' -> return InputEvent.Activate
@@ -87,15 +103,15 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     }
 
     private fun exitMove(exits: List<String>, idx: Int): InputEvent =
-        exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.Look
+        exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.InvalidMove
 
-    private fun addMessage(history: MutableList<String>, msg: String) {
+    private fun addMessage(history: MutableList<HistoryEntry>, msg: String, isTrigger: Boolean) {
         if (msg.isBlank()) return
-        history.add(msg)
+        history.add(HistoryEntry(msg, isTrigger))
         while (history.size > MAX_MESSAGES) history.removeAt(0)
     }
 
-    private fun render(screen: Screen, view: ViewData, history: List<String>) {
+    private fun render(screen: Screen, view: ViewData, history: List<HistoryEntry>) {
         screen.clear()
         val g = screen.newTextGraphics()
         val size = screen.terminalSize
@@ -200,23 +216,28 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
     private fun drawMessagesPanel(
         g: TextGraphics,
-        history: List<String>,
+        history: List<HistoryEntry>,
         top: TerminalPosition,
         width: Int,
         maxRows: Int
     ) {
-        val lines = mutableListOf<String>()
-        for (msg in history) {
-            wrapText(msg, width).forEach { lines.add(it) }
+        val lines = mutableListOf<Pair<String, Boolean>>()
+        for (entry in history) {
+            for (segment in entry.text.split("\n")) {
+                wrapText(segment, width).forEach { lines.add(it to entry.isTrigger) }
+            }
         }
 
         val skip = maxOf(0, lines.size - maxRows)
         var row = top.row
         for (i in skip until lines.size) {
             if (row >= top.row + maxRows) break
-            g.putString(top.column, row, lines[i].padEnd(width))
+            val (lineText, isTrigger) = lines[i]
+            g.foregroundColor = if (isTrigger) TextColor.ANSI.BLUE else TextColor.ANSI.DEFAULT
+            g.putString(top.column, row, lineText.padEnd(width))
             row++
         }
+        g.foregroundColor = TextColor.ANSI.DEFAULT
     }
 
     private fun drawStatusesPanel(
@@ -369,7 +390,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         g.disableModifiers(SGR.BOLD)
     }
 
-    private fun printEndSummary(view: ViewData, history: List<String>) {
+    private fun printEndSummary(view: ViewData, history: List<HistoryEntry>) {
         val result = if (view.win == true) "YOU WIN!" else "GAME OVER"
         println("\n===== $result =====")
         println("Area  : ${view.currentAreaName}")
@@ -383,7 +404,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         }
         if (history.isNotEmpty()) {
             println("\n--- Last messages ---")
-            for (msg in history) println(msg)
+            for (entry in history) println(entry.text)
         }
     }
 }

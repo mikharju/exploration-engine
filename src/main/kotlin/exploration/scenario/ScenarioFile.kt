@@ -40,9 +40,37 @@ data class AreaEntry(
 )
 
 @Serializable
+data class TriggerCondition(
+    val statusName: String,
+    val op: String,
+    val threshold: Int
+)
+
+@Serializable
+data class EffectEntry(
+    val type: String,
+    val text: String? = null,
+    val amount: Int? = null,
+    val statusName: String? = null,
+    val value: Int? = null
+)
+
+@Serializable
+data class TriggerEntry(
+    val id: String,
+    val ownerType: String,
+    val ownerId: String,
+    val conditions: List<TriggerCondition> = emptyList(),
+    val effects: List<EffectEntry>,
+    val singleUse: Boolean = true,
+    val intervalTurns: Int? = null
+)
+
+@Serializable
 data class ScenarioConfig(
     val playerStart: PlayerStart,
     val areasFile: String,
     val devicesFile: String,
-    val statuses: Map<String, StatusEntry> = emptyMap()
+    val statuses: Map<String, StatusEntry> = emptyMap(),
+    val triggersFile: String? = null
 )

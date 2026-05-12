@@ -1,0 +1,40 @@
+[
+  {
+    "id": "forestWelcome",
+    "ownerType": "AREA",
+    "ownerId": "Forest",
+    "effects": [
+      {"type": "displayText", "text": "The forest feels alive with ancient energy."}
+    ]
+  },
+  {
+    "id": "ruinsWarning",
+    "ownerType": "AREA",
+    "ownerId": "Ruins",
+    "effects": [
+      {"type": "displayText", "text": "The air here tastes of metal and decay."}
+    ]
+  },
+  {
+    "id": "corruptionDamage",
+    "ownerType": "STATUS",
+    "ownerId": "corruption",
+    "conditions": [
+      {"statusName": "corruption", "op": ">", "threshold": 20}
+    ],
+    "effects": [
+      {"type": "displayText", "text": "Corruption courses through your veins."},
+      {"type": "changeHealth", "amount": -1}
+    ],
+    "singleUse": false,
+    "intervalTurns": 2
+  },
+  {
+    "id": "crystalPurge",
+    "ownerType": "DEVICE",
+    "ownerId": "Crystal",
+    "effects": [
+      {"type": "displayText", "text": "The light burns away some of the corruption."}
+    ]
+  }
+]

@@ -8,6 +8,6 @@ import java.nio.file.Path
 class JsonScenarioRepository : ScenarioRepository {
     override fun load(id: String): GameState {
         val files = loadScenarioFiles(Path.of(id))
-        return assembleGame(files.config, files.areas, files.devices)
+        return assembleGame(files.config, files.areas, files.devices, files.triggers)
     }
 }
