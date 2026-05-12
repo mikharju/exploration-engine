@@ -2,7 +2,6 @@ package exploration.core.engine
 
 import exploration.command.Command
 import exploration.command.processCommand
-import exploration.model.AreaId
 import exploration.port.*
 import exploration.state.GameState
 
@@ -16,15 +15,20 @@ class GameEngineImpl(
     override fun tick(state: GameState, event: InputEvent): GameState {
         if (state.isOver) return state.copy(commandOutput = "Game is over. Restart to play again.")
 
-        val command: Command = when (event) {
+        val command: Command? = when (event) {
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
-            is InputEvent.Move -> Command.Move(event.areaName)
-            is InputEvent.InvalidMove -> return state.copy(commandOutput = "Can't move that way.")
-            is InputEvent.Exit -> return state.copy(isOver = true, commandOutput = "Goodbye.", win = null)
+            is InputEvent.MoveDirection -> resolveDirection(state, event.index)
         }
 
-        return processCommand(state, command)
+        return if (command != null) processCommand(state, command) else state.copy(
+            commandOutput = "Can't move that way."
+        )
+    }
+
+    private fun resolveDirection(state: GameState, index: Int): Command? {
+        val exitName = sortedExits(state).getOrNull(index) ?: return null
+        return Command.Move(exitName)
     }
 
     override fun view(state: GameState): ViewData {

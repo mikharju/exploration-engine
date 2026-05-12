@@ -14,11 +14,14 @@ class KeyUiAdapter(private val engine: GameEngine) {
             render(state, engine)
 
             while (!engine.view(state).gameOver) {
-                val exits = engine.view(state).exits
-                val event = waitForInput(exits)
-                if (event is InputEvent.Exit) break
-                state = engine.tick(state, event)
-                render(state, engine)
+                val event = waitForInput()
+                when (event) {
+                    null -> break
+                    else -> {
+                        state = engine.tick(state, event)
+                        render(state, engine)
+                    }
+                }
             }
 
             showEnd(engine.view(state))
@@ -95,25 +98,24 @@ class KeyUiAdapter(private val engine: GameEngine) {
         }
     }
 
-    private fun waitForInput(exits: List<String>): InputEvent {
+    private fun waitForInput(): InputEvent? {
         val stream = ttyStream ?: System.`in`
         while (true) {
             val r = stream.read()
-            if (r < 0) return InputEvent.Exit
+            if (r < 0) return null
 
             when (val ch = r.toChar()) {
-                '\u001b' -> return InputEvent.Exit
+                '\u001b' -> return null
                 else -> {
                     val lc = ch.lowercaseChar()
                     when (lc) {
-                        'w', 'a', 's', 'd' -> {
-                            val idx = listOf('w', 'a', 's', 'd').indexOf(lc)
-                            return exits.getOrNull(idx)?.let { InputEvent.Move(it) }
-                                ?: InputEvent.Look
-                        }
+                        'w' -> return InputEvent.MoveDirection(0)
+                        'a' -> return InputEvent.MoveDirection(1)
+                        's' -> return InputEvent.MoveDirection(2)
+                        'd' -> return InputEvent.MoveDirection(3)
                         'l' -> return InputEvent.Look
                         'u' -> return InputEvent.Activate
-                        'q' -> return InputEvent.Exit
+                        'q' -> return null
                     }
                 }
             }

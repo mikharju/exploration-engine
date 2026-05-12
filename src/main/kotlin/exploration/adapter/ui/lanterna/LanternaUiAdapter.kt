@@ -35,7 +35,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         addMessage(history, "=== Exploration Engine (Lanterna) ===", false)
         addMessage(
             history,
-            "arrows/wasd: move | l: look | u: activate | q/esc: quit",
+            "arrows/wasd: move | l: look | u: activate | h: help | q/esc: quit",
             false
         )
         addMessage(
@@ -48,18 +48,27 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         while (!engine.view(state).gameOver) {
             screen.doResizeIfNecessary()
-            val event = readInputKey(screen, engine.view(state).exits)
-            if (event is InputEvent.Exit) break
-            state = engine.tick(state, event)
-            val view = engine.view(state)
-            if (view.commandText.isNotBlank()) addMessage(history, view.commandText, false)
-            val newTriggerCount = view.triggerTexts.size - shownTriggers
-            for (i in 0 until newTriggerCount) {
-                val triggerText = view.triggerTexts[shownTriggers + i]
-                if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
+            val keyEvent = readInputKey(screen)
+            when (keyEvent) {
+                is KeyAction.Quit -> break
+                is KeyAction.Help -> {
+                    addMessage(history, "arrows/wasd: move | l: look | u: activate | h: help | q/esc: quit", false)
+                    render(screen, engine.view(state), history)
+                    continue
+                }
+                is KeyAction.Event -> {
+                    state = engine.tick(state, keyEvent.event)
+                    val view = engine.view(state)
+                    if (view.commandText.isNotBlank()) addMessage(history, view.commandText, false)
+                    val newTriggerCount = view.triggerTexts.size - shownTriggers
+                    for (i in 0 until newTriggerCount) {
+                        val triggerText = view.triggerTexts[shownTriggers + i]
+                        if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
+                    }
+                    shownTriggers = view.triggerTexts.size
+                    render(screen, view, history)
+                }
             }
-            shownTriggers = view.triggerTexts.size
-            render(screen, view, history)
         }
 
         val finalView = engine.view(state)
@@ -78,32 +87,36 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         printEndSummary(finalView, history)
     }
 
-    private fun readInputKey(screen: Screen, exits: List<String>): InputEvent {
-        val key = screen.readInput() ?: return InputEvent.Exit
+    private sealed class KeyAction {
+        object Quit : KeyAction()
+        object Help : KeyAction()
+        data class Event(val event: InputEvent) : KeyAction()
+    }
+
+    private fun readInputKey(screen: Screen): KeyAction {
+        val key = screen.readInput() ?: return KeyAction.Quit
         when (key.keyType) {
-            KeyType.Escape -> return InputEvent.Exit
-            KeyType.ArrowUp -> return exitMove(exits, 0)
-            KeyType.ArrowDown -> return exitMove(exits, 2)
-            KeyType.ArrowLeft -> return exitMove(exits, 1)
-            KeyType.ArrowRight -> return exitMove(exits, 3)
+            KeyType.Escape -> return KeyAction.Quit
+            KeyType.ArrowUp -> return KeyAction.Event(InputEvent.MoveDirection(0))
+            KeyType.ArrowDown -> return KeyAction.Event(InputEvent.MoveDirection(2))
+            KeyType.ArrowLeft -> return KeyAction.Event(InputEvent.MoveDirection(1))
+            KeyType.ArrowRight -> return KeyAction.Event(InputEvent.MoveDirection(3))
             KeyType.Character -> {
                 when (key.character.lowercaseChar()) {
-                    'w', 'a', 's', 'd' -> {
-                        val idx = listOf('w', 'a', 's', 'd').indexOf(key.character.lowercaseChar())
-                        return exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.InvalidMove
-                    }
-                    'l' -> return InputEvent.Look
-                    'u' -> return InputEvent.Activate
-                    'q' -> return InputEvent.Exit
+                    'w' -> return KeyAction.Event(InputEvent.MoveDirection(0))
+                    'a' -> return KeyAction.Event(InputEvent.MoveDirection(1))
+                    's' -> return KeyAction.Event(InputEvent.MoveDirection(2))
+                    'd' -> return KeyAction.Event(InputEvent.MoveDirection(3))
+                    'l' -> return KeyAction.Event(InputEvent.Look)
+                    'u' -> return KeyAction.Event(InputEvent.Activate)
+                    'h' -> return KeyAction.Help
+                    'q' -> return KeyAction.Quit
                 }
             }
             else -> {}
         }
-        return InputEvent.Exit
+        return KeyAction.Help
     }
-
-    private fun exitMove(exits: List<String>, idx: Int): InputEvent =
-        exits.getOrNull(idx)?.let { InputEvent.Move(it) } ?: InputEvent.InvalidMove
 
     private fun addMessage(history: MutableList<HistoryEntry>, msg: String, isTrigger: Boolean) {
         if (msg.isBlank()) return

@@ -14,13 +14,19 @@ class TextUiAdapter(private val engine: GameEngine) {
             print("> ")
             val line = readLine()?.trim() ?: break
             if (line.isEmpty()) continue
+            if (line.lowercase() == "quit") break
 
             val event = parseText(line)
                 ?: run {
-                    state = state.copy(commandOutput = "Unknown command. Try: look, move <area>, activate")
+                    state = state.copy(commandOutput = "Unknown command.\nCommands: l, u, w/a/s/d, help, quit")
                     render(state, engine)
                     continue
                 }
+            if (line.lowercase() == "help") {
+                state = state.copy(commandOutput = "Commands: l(ook), u(se/activate), w/a/s/d(move by direction), help, quit\nExits are listed below with their key bindings.")
+                render(state, engine)
+                continue
+            }
             state = engine.tick(state, event)
             render(state, engine)
         }
@@ -43,18 +49,33 @@ class TextUiAdapter(private val engine: GameEngine) {
         val statusStr = if (v.statuses.isNotEmpty()) {
             " | ${v.statuses.entries.joinToString(" | ") { (k, n) -> "${k.replaceFirstChar { c -> c.uppercaseChar() }}: $n" }}"
         } else ""
-        val exits = if (v.exits.isEmpty()) "(none)" else v.exits.joinToString(", ")
-        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exits]$statusStr")
+        val exitStr = if (v.exits.isEmpty()) {
+            "(none)"
+        } else {
+            v.exits.mapIndexed { idx, name ->
+                when (idx) {
+                    0 -> "[w] $name"
+                    1 -> "[a] $name"
+                    2 -> "[s] $name"
+                    3 -> "[d] $name"
+                    else -> "[$idx] $name"
+                }
+            }.joinToString(" ")
+        }
+
+        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exitStr]$statusStr")
     }
 
     private fun printIntro() {
         println("=== Exploration Engine ===")
-        println("Commands: look, move <area>, activate")
+        println("Commands: l, u, w/a/s/d, help, quit")
         println("Goal: explore all areas and activate all devices. Don't run out of health!")
         println()
     }
 
     private fun showEnd(v: ViewData) {
+        println()
+        if (v.outputLine.isNotBlank()) println(v.outputLine)
         println()
         if (v.win == true) {
             println("CONGRATULATIONS! You completed the exploration!")
