@@ -2,6 +2,7 @@ package exploration.core.engine
 
 import exploration.command.Command
 import exploration.command.processCommand
+import exploration.model.ItemLocationType
 import exploration.port.*
 import exploration.state.GameState
 
@@ -19,6 +20,11 @@ class GameEngineImpl(
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
             is InputEvent.MoveDirection -> resolveDirection(state, event.index)
+            is InputEvent.TakeItem -> Command.TakeItem(event.itemName)
+            is InputEvent.DropItem -> Command.DropItem(event.itemName)
+            is InputEvent.EquipItem -> Command.EquipItem(event.itemName)
+            is InputEvent.UnequipItem -> Command.UnequipItem(event.itemName)
+            is InputEvent.Inventory -> Command.Inventory
         }
 
         return if (command != null) processCommand(state, command) else state.copy(
@@ -48,8 +54,19 @@ class GameEngineImpl(
             statuses = state.player.statuses.filterValues { it != 0 },
             statusBounds = state.statusBounds,
             gameOver = state.isOver,
-            win = state.win
+            win = state.win,
+            areaItems = state.items
+                .filter { it.location.type == ItemLocationType.AREA && it.location.id == area.id.name }
+                .map { ItemView(it.id.name, it.description) },
+            carriedItems = buildItemViews(state, ItemLocationType.CARRIED),
+            equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED)
         )
+    }
+
+    private fun buildItemViews(state: GameState, type: ItemLocationType): List<ItemView> {
+        return state.items
+            .filter { it.location.type == type }
+            .map { ItemView(it.id.name, it.description) }
     }
 
     private fun sortedExits(state: GameState): List<String> =

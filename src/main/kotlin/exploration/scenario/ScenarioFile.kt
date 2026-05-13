@@ -1,5 +1,6 @@
 package exploration.scenario
 
+import exploration.model.ItemLocationType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -40,10 +41,31 @@ data class AreaEntry(
 )
 
 @Serializable
+data class ItemEntry(
+    val id: String,
+    val description: String,
+    val initialLocationType: String = "AREA",
+    val initialLocationId: String? = null
+) {
+    fun toLocation(): exploration.model.Location {
+        val type = when (initialLocationType.uppercase()) {
+            "AREA" -> ItemLocationType.AREA
+            "DEVICE" -> ItemLocationType.DEVICE
+            "CARRIED" -> ItemLocationType.CARRIED
+            "EQUIPPED" -> ItemLocationType.EQUIPPED
+            else -> error("Unknown location type: $initialLocationType")
+        }
+        return exploration.model.Location(type, initialLocationId)
+    }
+}
+
+@Serializable
 data class TriggerCondition(
-    val statusName: String,
-    val op: String,
-    val threshold: Int
+    val checkType: String? = null,
+    val statusName: String? = null,
+    val op: String? = null,
+    val threshold: Int? = null,
+    val itemId: String? = null
 )
 
 @Serializable
@@ -52,7 +74,10 @@ data class EffectEntry(
     val text: String? = null,
     val amount: Int? = null,
     val statusName: String? = null,
-    val value: Int? = null
+    val value: Int? = null,
+    val itemId: String? = null,
+    val locationType: String? = null,
+    val locationId: String? = null
 )
 
 @Serializable
@@ -72,5 +97,6 @@ data class ScenarioConfig(
     val areasFile: String,
     val devicesFile: String,
     val statuses: Map<String, StatusEntry> = emptyMap(),
-    val triggersFile: String? = null
+    val triggersFile: String? = null,
+    val itemsFile: String? = null
 )

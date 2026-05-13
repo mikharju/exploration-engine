@@ -36,5 +36,42 @@
     "effects": [
       {"type": "displayText", "text": "The light burns away some of the corruption."}
     ]
+  },
+  {
+    "id": "clampEquip",
+    "ownerType": "AREA",
+    "ownerId": "Ruins",
+    "effects": [
+      {"type": "setLocation", "itemId": "clamp trap", "locationType": "EQUIPPED"},
+      {"type": "lockItem", "itemId": "clamp trap"},
+      {"type": "displayText", "text": "Metal device drops from the ceiling on your shoulder and clamps on."}
+    ]
+  },
+  {
+    "id": "clampDamage",
+    "ownerType": "STATUS",
+    "ownerId": "corruption",
+    "conditions": [
+      {"checkType": "itemEquipped", "itemId": "clamp trap"}
+    ],
+    "effects": [
+      {"type": "changeHealth", "amount": -1},
+      {"type": "displayText", "text": "Strange metal device on your shoulder clamps tighter. It hurts."}
+    ],
+    "singleUse": false,
+    "intervalTurns": 2
+  },
+  {
+    "id": "pliersUnlock",
+    "ownerType": "STATUS",
+    "ownerId": "corruption",
+    "conditions": [
+      {"checkType": "itemEquipped", "itemId": "pliers"},
+      {"checkType": "itemEquipped", "itemId": "clamp trap"}
+    ],
+    "effects": [
+      {"type": "unlockItem", "itemId": "clamp trap"},
+      {"type": "displayText", "text": "You use the pliers to pry open the clamp!"}
+    ]
   }
 ]

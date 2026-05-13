@@ -8,7 +8,8 @@ fun assembleGame(
     config: ScenarioConfig,
     areaEntries: List<AreaEntry>,
     deviceEntries: List<DeviceEntry>,
-    triggerEntries: List<TriggerEntry> = emptyList()
+    triggerEntries: List<TriggerEntry> = emptyList(),
+    itemEntries: List<ItemEntry> = emptyList()
 ): GameState {
     val statusInitial = mutableMapOf<String, Int>()
     val statusBounds = mutableMapOf<String, StatusRange>()
@@ -71,6 +72,15 @@ fun assembleGame(
         statuses = statusInitial
     )
 
+    val items = itemEntries.map { entry ->
+        Item(
+            id = ItemId(entry.id),
+            description = entry.description,
+            location = entry.toLocation(),
+            locked = false
+        )
+    }
+
     val triggers = triggerEntries.map { entry ->
         Trigger(
             id = entry.id,
@@ -78,9 +88,21 @@ fun assembleGame(
             ownerId = entry.ownerId,
             conditions = entry.conditions.map { cond ->
                 ActivationCondition(
+                    checkType = when (cond.checkType) {
+                        "itemCarried" -> CheckType.ITEM_CARRIED
+                        "itemEquipped" -> CheckType.ITEM_EQUIPPED
+                        null -> CheckType.STATUS
+                        else -> CheckType.STATUS
+                    },
                     statusName = cond.statusName,
-                    op = when (cond.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("Unknown operator: ${cond.op}") },
-                    threshold = cond.threshold
+                    op = when (cond.op) {
+                        ">" -> ComparisonOp.GT
+                        "<" -> ComparisonOp.LT
+                        null -> ComparisonOp.GT
+                        else -> error("Unknown operator: ${cond.op}")
+                    },
+                    threshold = cond.threshold ?: 0,
+                    itemId = cond.itemId
                 )
             },
             effects = entry.effects.map { ef ->
@@ -89,6 +111,19 @@ fun assembleGame(
                     "changeHealth" -> Effect.ChangeHealth(checkNotNull(ef.amount))
                     "adjustStatus" -> Effect.AdjustStatus(checkNotNull(ef.statusName), checkNotNull(ef.amount))
                     "setStatus" -> Effect.SetStatus(checkNotNull(ef.statusName), checkNotNull(ef.value))
+                    "setLocation" -> Effect.SetLocation(
+                        checkNotNull(ef.itemId),
+                        when (ef.locationType?.uppercase()) {
+                            "AREA" -> ItemLocationType.AREA
+                            "DEVICE" -> ItemLocationType.DEVICE
+                            "CARRIED" -> ItemLocationType.CARRIED
+                            "EQUIPPED" -> ItemLocationType.EQUIPPED
+                            else -> error("Unknown location type: ${ef.locationType}")
+                        },
+                        ef.locationId
+                    )
+                    "lockItem" -> Effect.LockItem(checkNotNull(ef.itemId))
+                    "unlockItem" -> Effect.UnlockItem(checkNotNull(ef.itemId))
                     else -> error("Unknown effect type: ${ef.type}")
                 }
             },
@@ -114,7 +149,8 @@ fun assembleGame(
         world = world,
         player = player,
         statusBounds = statusBounds,
-        triggers = triggers
+        triggers = triggers,
+        items = items
     )
 
     return fireAreaTriggers(state, startId.name)

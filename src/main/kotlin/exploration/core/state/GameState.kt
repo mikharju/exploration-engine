@@ -2,6 +2,8 @@ package exploration.state
 
 import exploration.model.AreaId
 import exploration.model.DeviceId
+import exploration.model.Item
+
 import exploration.model.Player
 import exploration.model.World
 
@@ -19,7 +21,8 @@ data class GameState(
     val win: Boolean? = null,
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val turn: Int = 0,
-    val triggers: List<Trigger> = emptyList()
+    val triggers: List<Trigger> = emptyList(),
+    val items: List<Item> = emptyList()
 ) {
     val output: String get() = if (triggerTexts.isEmpty()) commandOutput else "$commandOutput\n${triggerTexts.joinToString("\n")}"
     fun allDeviceIds(): Set<DeviceId> {

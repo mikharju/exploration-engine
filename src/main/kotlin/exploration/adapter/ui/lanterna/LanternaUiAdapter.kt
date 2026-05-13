@@ -11,6 +11,7 @@ import com.googlecode.lanterna.terminal.DefaultTerminalFactory
 import exploration.model.StatusRange
 import exploration.port.GameEngine
 import exploration.port.InputEvent
+import exploration.port.ItemView
 import exploration.port.ViewData
 
 class LanternaUiAdapter(private val engine: GameEngine) {
@@ -23,6 +24,10 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         private const val MIN_HEIGHT = 23
     }
 
+    private enum class SelectionTarget { TAKE, DROP, EQUIP, UNEQUIP }
+
+    private data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
+
     fun run(scenarioId: String) {
         val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
         screen.startScreen()
@@ -30,12 +35,13 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         val history = mutableListOf<HistoryEntry>()
         var shownTriggers = 0
+        var selectionState: SelectionState? = null
 
         var state = engine.start(scenarioId)
         addMessage(history, "=== Exploration Engine (Lanterna) ===", false)
         addMessage(
             history,
-            "arrows/wasd: move | l: look | u: activate | h: help | q/esc: quit",
+            "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | h: help | q/esc: quit",
             false
         )
         addMessage(
@@ -48,25 +54,34 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         while (!engine.view(state).gameOver) {
             screen.doResizeIfNecessary()
-            val keyEvent = readInputKey(screen)
-            when (keyEvent) {
+            val viewBefore = engine.view(state)
+            val result = readInputKey(screen, viewBefore, selectionState)
+            selectionState = result.selectionState
+
+            when (result.action) {
                 is KeyAction.Quit -> break
                 is KeyAction.Help -> {
-                    addMessage(history, "arrows/wasd: move | l: look | u: activate | h: help | q/esc: quit", false)
+                    addMessage(history, "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | h: help | q/esc: quit", false)
                     render(screen, engine.view(state), history)
                     continue
                 }
+                is KeyAction.WaitSelection -> {
+                    val ss = selectionState!!
+                    addMessage(history, buildSelectionPrompt(ss.target, ss.items), false)
+                    render(screen, viewBefore, history)
+                    continue
+                }
                 is KeyAction.Event -> {
-                    state = engine.tick(state, keyEvent.event)
-                    val view = engine.view(state)
-                    if (view.commandText.isNotBlank()) addMessage(history, view.commandText, false)
-                    val newTriggerCount = view.triggerTexts.size - shownTriggers
+                    state = engine.tick(state, result.action.event)
+                    val viewAfter = engine.view(state)
+                    if (viewAfter.commandText.isNotBlank()) addMessage(history, viewAfter.commandText, false)
+                    val newTriggerCount = viewAfter.triggerTexts.size - shownTriggers
                     for (i in 0 until newTriggerCount) {
-                        val triggerText = view.triggerTexts[shownTriggers + i]
+                        val triggerText = viewAfter.triggerTexts[shownTriggers + i]
                         if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
                     }
-                    shownTriggers = view.triggerTexts.size
-                    render(screen, view, history)
+                    shownTriggers = viewAfter.triggerTexts.size
+                    render(screen, viewAfter, history)
                 }
             }
         }
@@ -90,32 +105,96 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     private sealed class KeyAction {
         object Quit : KeyAction()
         object Help : KeyAction()
+        object WaitSelection : KeyAction()
         data class Event(val event: InputEvent) : KeyAction()
     }
 
-    private fun readInputKey(screen: Screen): KeyAction {
-        val key = screen.readInput() ?: return KeyAction.Quit
+    private data class ReadInputResult(val action: KeyAction, val selectionState: SelectionState?)
+
+    private fun readInputKey(
+        screen: Screen,
+        view: ViewData,
+        selState: SelectionState?
+    ): ReadInputResult {
+        val key = screen.readInput() ?: return ReadInputResult(KeyAction.Quit, null)
+
+        if (selState != null) {
+            return handleSelectionDigit(key, selState)
+        }
+
         when (key.keyType) {
-            KeyType.Escape -> return KeyAction.Quit
-            KeyType.ArrowUp -> return KeyAction.Event(InputEvent.MoveDirection(0))
-            KeyType.ArrowDown -> return KeyAction.Event(InputEvent.MoveDirection(2))
-            KeyType.ArrowLeft -> return KeyAction.Event(InputEvent.MoveDirection(1))
-            KeyType.ArrowRight -> return KeyAction.Event(InputEvent.MoveDirection(3))
+            KeyType.Escape -> return ReadInputResult(KeyAction.Quit, null)
+            KeyType.ArrowUp -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(0)), null)
+            KeyType.ArrowDown -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(2)), null)
+            KeyType.ArrowLeft -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(1)), null)
+            KeyType.ArrowRight -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(3)), null)
             KeyType.Character -> {
                 when (key.character.lowercaseChar()) {
-                    'w' -> return KeyAction.Event(InputEvent.MoveDirection(0))
-                    'a' -> return KeyAction.Event(InputEvent.MoveDirection(1))
-                    's' -> return KeyAction.Event(InputEvent.MoveDirection(2))
-                    'd' -> return KeyAction.Event(InputEvent.MoveDirection(3))
-                    'l' -> return KeyAction.Event(InputEvent.Look)
-                    'u' -> return KeyAction.Event(InputEvent.Activate)
-                    'h' -> return KeyAction.Help
-                    'q' -> return KeyAction.Quit
+                    'w' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(0)), null)
+                    'a' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(1)), null)
+                    's' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(2)), null)
+                    'd' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(3)), null)
+                    'l' -> return ReadInputResult(KeyAction.Event(InputEvent.Look), null)
+                    'u' -> return ReadInputResult(KeyAction.Event(InputEvent.Activate), null)
+                    'g' -> {
+                        val candidates = view.areaItems
+                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null)
+                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.TakeItem(candidates[0].name)), null)
+                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.TAKE, candidates))
+                    }
+                    'p' -> {
+                        val candidates = view.carriedItems + view.equippedItems
+                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null)
+                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.DropItem(candidates[0].name)), null)
+                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.DROP, candidates))
+                    }
+                    'e' -> {
+                        val candidates = view.carriedItems
+                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null)
+                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.EquipItem(candidates[0].name)), null)
+                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.EQUIP, candidates))
+                    }
+                    'r' -> {
+                        val candidates = view.equippedItems
+                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null)
+                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.UnequipItem(candidates[0].name)), null)
+                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.UNEQUIP, candidates))
+                    }
+                    'i' -> return ReadInputResult(KeyAction.Event(InputEvent.Inventory), null)
+                    'h' -> return ReadInputResult(KeyAction.Help, null)
+                    'q' -> return ReadInputResult(KeyAction.Quit, null)
                 }
             }
             else -> {}
         }
-        return KeyAction.Help
+        return ReadInputResult(KeyAction.Help, null)
+    }
+
+    private fun handleSelectionDigit(key: com.googlecode.lanterna.input.KeyStroke, selState: SelectionState): ReadInputResult {
+        if (key.keyType == KeyType.Escape) return ReadInputResult(KeyAction.Help, null)
+        if (key.keyType != KeyType.Character) return ReadInputResult(KeyAction.WaitSelection, selState)
+        val idx = key.character.digitToIntOrNull() ?: return ReadInputResult(KeyAction.WaitSelection, selState)
+        val itemIdx = idx - 1
+        if (itemIdx < 0 || itemIdx >= selState.items.size) return ReadInputResult(KeyAction.Help, null)
+        val item = selState.items[itemIdx]
+        val event = when (selState.target) {
+            SelectionTarget.TAKE -> InputEvent.TakeItem(item.name)
+            SelectionTarget.DROP -> InputEvent.DropItem(item.name)
+            SelectionTarget.EQUIP -> InputEvent.EquipItem(item.name)
+            SelectionTarget.UNEQUIP -> InputEvent.UnequipItem(item.name)
+        }
+        return ReadInputResult(KeyAction.Event(event), null)
+    }
+
+    private fun buildSelectionPrompt(target: SelectionTarget, items: List<ItemView>): String {
+        val verb = when (target) {
+            SelectionTarget.TAKE -> "Take"
+            SelectionTarget.DROP -> "Drop"
+            SelectionTarget.EQUIP -> "Equip"
+            SelectionTarget.UNEQUIP -> "Unequip"
+        }
+        val options = items.mapIndexed { i, it -> "[${i + 1}] ${it.name}" }.joinToString(" ")
+        return "$verb what? $options"
     }
 
     private fun addMessage(history: MutableList<HistoryEntry>, msg: String, isTrigger: Boolean) {
@@ -148,11 +227,11 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         drawTitle(g, w)
         drawPanelHeaders(g, leftWidth, rightWidth, splitCol)
         drawSeparatorLine(g, w, splitCol, panelStartRow - 1)
-        drawMessagesPanel(g, history, TerminalPosition(1, panelStartRow), leftWidth, h - panelStartRow - 3)
-        drawStatusesPanel(g, view, TerminalPosition(splitCol + 1, panelStartRow), rightWidth - 1, h - panelStartRow - 3)
-        drawVerticalSeparator(g, splitCol, 2, h - 6)
+        drawMessagesPanel(g, history, TerminalPosition(1, panelStartRow), leftWidth, h - panelStartRow - 4)
+        drawStatusesPanel(g, view, TerminalPosition(splitCol + 1, panelStartRow), rightWidth - 1, h - panelStartRow - 4)
+        drawVerticalSeparator(g, splitCol, 2, h - 5)
         drawSplitSeparator(g, w, splitCol, h - 5)
-        drawDirectionPad(g, view.exits, w - 2, h - 3)
+        drawBottomBar(g, view, w - 2, h - 5)
 
         screen.refresh()
     }
@@ -266,24 +345,35 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val progLine = " Exp: ${v.exploredCount}/${v.totalAreas}   Dev: ${v.activatedCount}/${v.totalDevices}"
         g.putString(top.column, top.row + 1, progLine.padEnd(width))
 
-        val statuses = v.statuses.filterValues { it != 0 }
-        if (statuses.isEmpty()) return
-
-        val statusLines = mutableListOf<String>()
-        for ((name, value) in statuses) {
-            val range = v.statusBounds[name]
-            val text = formatStatus(name, value, range, width)
-            statusLines.add(text)
-        }
-
-        val availableRows = maxRows - 2
         var row = top.row + 2
-        for ((i, line) in statusLines.withIndex()) {
+
+        val statuses = v.statuses.filterValues { it != 0 }
+        for ((name, value) in statuses) {
             if (row >= top.row + maxRows) break
-            val displayLine = if (i < availableRows) line else "(more...)"
-            g.putString(top.column, row, displayLine.padEnd(width))
+            val range = v.statusBounds[name]
+            g.putString(top.column, row, formatStatus(name, value, range, width).padEnd(width))
             row++
         }
+
+        if (v.equippedItems.isEmpty()) return
+
+        if (row < top.row + maxRows && statuses.isNotEmpty()) {
+            g.putString(top.column, row, " ".repeat(width))
+            row++
+        }
+
+        for ((i, item) in v.equippedItems.withIndex()) {
+            if (row >= top.row + maxRows) break
+            val label = "@ ${item.name}"
+            g.foregroundColor = TextColor.ANSI.MAGENTA
+            g.enableModifiers(SGR.BOLD)
+            g.putString(top.column, row, label.padEnd(width))
+            g.disableModifiers(SGR.BOLD)
+            g.foregroundColor = TextColor.ANSI.DEFAULT
+            row++
+        }
+
+        g.foregroundColor = TextColor.ANSI.DEFAULT
     }
 
     private fun buildHpBar(v: ViewData, width: Int): String {
@@ -344,12 +434,13 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         return result.ifEmpty { listOf("") }
     }
 
-    private fun drawDirectionPad(
+    private fun drawBottomBar(
         g: TextGraphics,
-        exits: List<String>,
+        view: ViewData,
         width: Int,
         topRow: Int
     ) {
+        val exits = view.exits
         val wLabel = exitLabel('w', exits.getOrNull(0))
         val aLabel = exitLabel('a', exits.getOrNull(1))
         val sLabel = exitLabel('s', exits.getOrNull(2))
@@ -365,9 +456,61 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val colW = colS - wLabel.length / 2
 
         drawSlot(g, wLabel, TerminalPosition(colW, topRow), exits.size > 0)
+        drawInvHint(g, width, topRow)
         drawSlot(g, aLabel, TerminalPosition(colA, topRow + 1), exits.size > 1)
         drawSlot(g, sLabel, TerminalPosition(colS, topRow + 1), exits.size > 2)
         drawSlot(g, dLabel, TerminalPosition(colD, topRow + 1), exits.size > 3)
+        drawActionHints(g, view, width, topRow + 2)
+    }
+
+    private fun drawInvHint(g: TextGraphics, width: Int, row: Int) {
+        val label = "[\$i] inv"
+        g.foregroundColor = TextColor.ANSI.CYAN
+        g.enableModifiers(SGR.BOLD)
+        val keyPart = "[i]"
+        g.putString(width - 10, row, keyPart)
+        g.disableModifiers(SGR.BOLD)
+        g.foregroundColor = TextColor.ANSI.WHITE
+        g.putString(width - 7, row, "inv")
+    }
+
+    private fun drawActionHints(g: TextGraphics, view: ViewData, width: Int, row: Int) {
+        val hasAreaItems = view.areaItems.isNotEmpty()
+        val hasCarriedOrEquipped = view.carriedItems.isNotEmpty() || view.equippedItems.isNotEmpty()
+        val hasCarried = view.carriedItems.isNotEmpty()
+        val hasEquipped = view.equippedItems.isNotEmpty()
+
+        val gLabel = "[\$g] grab"
+        val pLabel = "[\$p] drop"
+        val eLabel = "[\$e] equip"
+        val rLabel = "[\$r] uneq"
+
+        val gap = 2
+        val totalWidth = gLabel.length + gap + pLabel.length + gap + eLabel.length + gap + rLabel.length
+        val leftPad = (width - totalWidth) / 2
+
+        var col = leftPad
+        drawActionSlot(g, gLabel, TerminalPosition(col, row), hasAreaItems)
+        col += gLabel.length + gap
+        drawActionSlot(g, pLabel, TerminalPosition(col, row), hasCarriedOrEquipped)
+        col += pLabel.length + gap
+        drawActionSlot(g, eLabel, TerminalPosition(col, row), hasCarried)
+        col += eLabel.length + gap
+        drawActionSlot(g, rLabel, TerminalPosition(col, row), hasEquipped)
+    }
+
+    private fun drawActionSlot(g: TextGraphics, label: String, pos: TerminalPosition, active: Boolean) {
+        g.foregroundColor = if (active) TextColor.ANSI.GREEN else TextColor.ANSI.DEFAULT
+        g.enableModifiers(SGR.BOLD)
+        val keyPart = label.substringBefore(']') + "]"
+        g.putString(pos.column, pos.row, keyPart)
+        g.disableModifiers(SGR.BOLD)
+
+        val nameStart = pos.column + keyPart.length
+        val namePart = if (label.contains("] ")) label.substringAfter("] ") else ""
+        g.foregroundColor = if (active) TextColor.ANSI.WHITE else TextColor.ANSI.DEFAULT
+        g.putString(nameStart, pos.row, namePart)
+        g.disableModifiers(SGR.BOLD)
     }
 
     private fun exitLabel(key: Char, name: String?): String =

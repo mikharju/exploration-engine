@@ -1,0 +1,14 @@
+[
+  {
+    "id": "clamp trap",
+    "description": "A rusted metal clamp with visible springs",
+    "initialLocationType": "AREA",
+    "initialLocationId": "Ruins"
+  },
+  {
+    "id": "pliers",
+    "description": "A pair of sturdy iron pliers",
+    "initialLocationType": "AREA",
+    "initialLocationId": "Tower"
+  }
+]

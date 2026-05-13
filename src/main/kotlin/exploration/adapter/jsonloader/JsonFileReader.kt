@@ -3,6 +3,7 @@ package exploration.adapter.jsonloader
 import kotlinx.serialization.json.Json
 import exploration.scenario.AreaEntry
 import exploration.scenario.DeviceEntry
+import exploration.scenario.ItemEntry
 import exploration.scenario.ScenarioConfig
 import exploration.scenario.TriggerEntry
 import java.nio.file.Path
@@ -13,7 +14,8 @@ data class ScenarioFiles(
     val config: ScenarioConfig,
     val areas: List<AreaEntry>,
     val devices: List<DeviceEntry>,
-    val triggers: List<TriggerEntry> = emptyList()
+    val triggers: List<TriggerEntry> = emptyList(),
+    val items: List<ItemEntry> = emptyList()
 )
 
 fun loadScenarioFiles(configPath: Path): ScenarioFiles {
@@ -36,10 +38,17 @@ fun loadScenarioFiles(configPath: Path): ScenarioFiles {
         json.decodeFromString<List<TriggerEntry>>(triggersPath.toFile().readText())
     } ?: emptyList()
 
+    val items = config.itemsFile?.let { file ->
+        val itemsPath = baseDir.resolve(file)
+        require(itemsPath.toFile().exists()) { "Items file not found: $itemsPath" }
+        json.decodeFromString<List<ItemEntry>>(itemsPath.toFile().readText())
+    } ?: emptyList()
+
     return ScenarioFiles(
         config = config,
         devices = json.decodeFromString<List<DeviceEntry>>(devicesPath.toFile().readText()),
         areas = json.decodeFromString<List<AreaEntry>>(areasPath.toFile().readText()),
-        triggers = triggers
+        triggers = triggers,
+        items = items
     )
 }

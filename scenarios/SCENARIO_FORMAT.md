@@ -1,6 +1,6 @@
 # Scenario File Format — Exploration Engine
 
-A scenario is three JSON files: a **config** referencing two data files (**areas**, **devices**). Pass the config path as the first argument.
+A scenario is one or more JSON files: a **config** referencing data files (**areas**, **devices**, optionally **triggers**, **items**). Pass the config path as the first argument.
 
 ```bash
 ./build/install/exploration-engine/bin/exploration-engine scenarios/default/default.json
@@ -18,12 +18,16 @@ Entry point with player starting state and file references.
 | `areasFile` | string | yes | Relative to config location |
 | `devicesFile` | string | yes | Relative to config location |
 | `statuses` | object | no | Optional status indicators. Keys are names, values have `initial`, `min`, `max` |
+| `triggersFile` | string | no | Relative to config location |
+| `itemsFile` | string | no | Relative to config location |
 
 ```json
 {
   "playerStart": { "health": 3, "maxHealth": 20, "startArea": "Forest" },
   "areasFile": "areas.json",
   "devicesFile": "devices.json",
+  "triggersFile": "triggers.json",
+  "itemsFile": "items.json",
   "statuses": {
     "corruption": { "initial": 0, "min": 0, "max": 100 }
   }
@@ -80,6 +84,88 @@ Optional numeric indicators beyond health. Each status has a name, starting valu
 Status values are clamped to `[min, max]` after every adjustment. Win/lose conditions remain health-only — statuses don't affect game outcome directly.
 
 **Example:** A `corruption` status with `{ "initial": 0, "min": 0, "max": 100 }` starts at 0. A device with `"statusEffects": { "corruption": 15 }` raises it to 15 (capped at 100).
+
+## Items (`items.json`)
+
+JSON array of pick-up-able objects. Players can take, drop, equip, and unequip items via commands or triggers.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | Unique identifier |
+| `description` | string | yes | Shown on look when the item is in an area |
+| `initialLocationType` | string | no | Where the item starts. **Default: `AREA`** |
+| `initialLocationId` | string | no | Target for location type `AREA` or `DEVICE`. Required for those types |
+
+**Location types:** `AREA` (in a room), `DEVICE` (at a device), `CARRIED` (player inventory), `EQUIPPED` (worn by player)
+
+```json
+[
+  { "id": "pliers", "description": "A pair of sturdy iron pliers", "initialLocationType": "AREA", "initialLocationId": "Tower" }
+]
+```
+
+## Triggers (`triggers.json`)
+
+JSON array of conditional event definitions. Fire automatically on area entry, device activation, or each turn (status triggers).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | Unique identifier |
+| `ownerType` | string | yes | `AREA`, `DEVICE`, or `STATUS`. Determines when the trigger fires |
+| `ownerId` | string | yes | Area/device name for AREA/DEVICE. Status name for STATUS (unused at runtime) |
+| `conditions` | object[] | no | All must pass for the trigger to fire |
+| `effects` | object[] | yes | Applied when conditions are met |
+| `singleUse` | boolean | no | **Default: `true`**. If false, fires repeatedly |
+| `intervalTurns` | int | no | Minimum turns between firings (only for `singleUse: false`) |
+
+### Conditions
+
+All conditions must pass. Omit for unconditional triggers.
+
+| Field | Type | Notes |
+|---|---|---|
+| `checkType` | string | `itemCarried`, `itemEquipped`, or omit for status check |
+| `statusName` | string | Status to check (default: STATUS) |
+| `op` | string | `>` or `<`. **Default: `>`** |
+| `threshold` | int | Value to compare against. **Default: 0** |
+| `itemId` | string | Item ID for item checks |
+
+### Effects
+
+Each effect is an object with a `type` field plus type-specific fields.
+
+| Type | Fields | Description |
+|---|---|---|
+| `displayText` | `text` (string) | Shows a message to the player |
+| `changeHealth` | `amount` (int) | Changes health by delta |
+| `adjustStatus` | `statusName`, `amount` (int) | Adjusts status value, clamped to range |
+| `setStatus` | `statusName`, `value` (int) | Sets status to exact value, clamped |
+| `setLocation` | `itemId`, `locationType`, `locationId`? | Moves an item to a new location |
+| `lockItem` | `itemId` | Prevents the item from being dropped |
+| `unlockItem` | `itemId` | Allows the item to be dropped again |
+
+**Owner type timing:**
+- `AREA`: fires when entering `ownerId` area (after move)
+- `DEVICE`: fires after activating `ownerId` device
+- `STATUS`: fires each turn, useful for ongoing damage/status effects
+
+```json
+[
+  {
+    "id": "corruptionDamage",
+    "ownerType": "STATUS",
+    "ownerId": "corruption",
+    "conditions": [
+      {"statusName": "corruption", "op": ">", "threshold": 20}
+    ],
+    "effects": [
+      {"type": "displayText", "text": "Corruption courses through your veins."},
+      {"type": "changeHealth", "amount": -1}
+    ],
+    "singleUse": false,
+    "intervalTurns": 2
+  }
+]
 ```
 
 ## Validation & Rules
@@ -90,6 +176,8 @@ Engine throws `IllegalArgumentException` on load if violated:
 - File paths resolve relative to the config file directory (subdirs supported)
 - Status `min < max` for each defined status; `initial` must be within `[min, max]`
 - Keys in device `statusEffects` must match a declared status name
+- Trigger `ownerId` must exist when `ownerType` is `AREA` or `DEVICE`
+- Effect references to `itemId` must match an item ID from `itemsFile`
 
 **Win**: visited every area + activated every device. **Lose**: health ≤ 0 (clamped to [0, maxHealth]). Statuses don't affect win/lose.
 
@@ -110,3 +198,6 @@ Engine throws `IllegalArgumentException` on load if violated:
 - Unreachable areas making the scenario unwinnable
 - Referencing a device that doesn't exist in devicesFile
 - Referencing a status name in `statusEffects` that isn't declared in config `statuses`
+- Forgetting `initialLocationId` when `initialLocationType` is `AREA` or `DEVICE`
+- Trigger with no conditions firing unintentionally on every turn (STATUS triggers)
+- Setting `singleUse: false` without `intervalTurns`, causing per-turn spam

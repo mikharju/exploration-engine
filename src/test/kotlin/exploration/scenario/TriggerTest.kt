@@ -33,7 +33,7 @@ class TriggerTest {
     @Test
     fun `area trigger with condition that is not met does not fire`() {
         val state = baseState().copy(
-            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition("stamina", ComparisonOp.GT, 50)), listOf(Effect.ChangeHealth(-3))))
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.STATUS, statusName = "stamina", op = ComparisonOp.GT, threshold = 50)), listOf(Effect.ChangeHealth(-3))))
         )
         val result = fireAreaTriggers(state, "Forest")
         assertEquals(10, result.player.health)
@@ -43,7 +43,7 @@ class TriggerTest {
     fun `area trigger with condition met fires`() {
         val state = baseState(statuses = mapOf("stamina" to 60)).copy(
             statusBounds = mapOf("stamina" to StatusRange(0, 100)),
-            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition("stamina", ComparisonOp.GT, 50)), listOf(Effect.ChangeHealth(-3))))
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.STATUS, statusName = "stamina", op = ComparisonOp.GT, threshold = 50)), listOf(Effect.ChangeHealth(-3))))
         )
         val result = fireAreaTriggers(state, "Forest")
         assertEquals(7, result.player.health)
@@ -63,7 +63,7 @@ class TriggerTest {
         val state = baseState(statuses = mapOf("toxicity" to 10)).copy(
             turn = 10,
             statusBounds = mapOf("toxicity" to StatusRange(0, 100)),
-            triggers = listOf(Trigger("t1", OwnerType.STATUS, "poison", listOf(ActivationCondition("toxicity", ComparisonOp.GT, 5)), listOf(Effect.ChangeHealth(-1)), singleUse = false, intervalTurns = 3))
+            triggers = listOf(Trigger("t1", OwnerType.STATUS, "poison", listOf(ActivationCondition(checkType = CheckType.STATUS, statusName = "toxicity", op = ComparisonOp.GT, threshold = 5)), listOf(Effect.ChangeHealth(-1)), singleUse = false, intervalTurns = 3))
         )
         val r1 = fireStatusTriggers(state)
         assertEquals(9, r1.player.health)
@@ -110,7 +110,7 @@ class TriggerTest {
     fun `trigger loading from entries`() {
         val entry = TriggerEntry(
             id = "t1", ownerType = "AREA", ownerId = "Forest",
-            conditions = listOf(TriggerCondition("mana", ">", 5)),
+            conditions = listOf(TriggerCondition(statusName = "mana", op = ">", threshold = 5)),
             effects = listOf(EffectEntry(type = "changeHealth", amount = -3)),
             singleUse = true, intervalTurns = null
         )
@@ -124,7 +124,7 @@ private fun convertTriggerEntries(entries: List<TriggerEntry>): List<Trigger> {
     return entries.map { ef ->
         Trigger(
             id = ef.id, ownerType = OwnerType.valueOf(ef.ownerType), ownerId = ef.ownerId,
-            conditions = ef.conditions.map { ActivationCondition(it.statusName, when (it.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("bad") }, it.threshold) },
+            conditions = ef.conditions.map { ActivationCondition(checkType = CheckType.STATUS, statusName = it.statusName, op = when (it.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("bad") }, threshold = it.threshold ?: 0) },
             effects = ef.effects.map { map ->
                 when (map.type) { "changeHealth" -> Effect.ChangeHealth(map.amount!!); "displayText" -> Effect.DisplayText(map.text!!); else -> error("bad") }
             }, singleUse = ef.singleUse, intervalTurns = ef.intervalTurns

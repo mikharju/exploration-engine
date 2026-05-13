@@ -2,10 +2,14 @@ package exploration.model
 
 enum class OwnerType { AREA, DEVICE, STATUS }
 
+enum class CheckType { STATUS, ITEM_CARRIED, ITEM_EQUIPPED }
+
 data class ActivationCondition(
-    val statusName: String,
-    val op: ComparisonOp,
-    val threshold: Int
+    val checkType: CheckType = CheckType.STATUS,
+    val statusName: String? = null,
+    val op: ComparisonOp = ComparisonOp.GT,
+    val threshold: Int = 0,
+    val itemId: String? = null
 )
 
 enum class ComparisonOp { GT, LT }
@@ -15,6 +19,9 @@ sealed class Effect {
     data class ChangeHealth(val amount: Int) : Effect()
     data class AdjustStatus(val statusName: String, val amount: Int) : Effect()
     data class SetStatus(val statusName: String, val value: Int) : Effect()
+    data class SetLocation(val itemId: String, val locationType: ItemLocationType, val locationId: String? = null) : Effect()
+    data class LockItem(val itemId: String) : Effect()
+    data class UnlockItem(val itemId: String) : Effect()
 }
 
 data class Trigger(

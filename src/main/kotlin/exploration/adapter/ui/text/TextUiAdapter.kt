@@ -18,7 +18,7 @@ class TextUiAdapter(private val engine: GameEngine) {
 
             val event = parseText(line)
                 ?: run {
-                    state = state.copy(commandOutput = "Unknown command.\nCommands: l, u, w/a/s/d, help, quit")
+                    state = state.copy(commandOutput = "Unknown command.\nCommands: l, u, w/a/s/d, take <item>, drop <item>, equip <item>, unequip <item>, inv, help, quit")
                     render(state, engine)
                     continue
                 }

@@ -13,5 +13,6 @@
       "max": 100
     }
   },
-  "triggersFile": "triggers.json"
+  "triggersFile": "triggers.json",
+  "itemsFile": "items.json"
 }
