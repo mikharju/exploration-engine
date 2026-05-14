@@ -9,7 +9,15 @@ class KeyUiAdapter(private val engine: GameEngine) {
         AnsiConsole.systemInstall()
         enableRawInput()
         try {
-            var state = engine.start(scenarioId)
+            var state: exploration.state.GameState
+            try {
+                state = engine.start(scenarioId)
+            } catch (e: Exception) {
+                println("Error loading scenario '$scenarioId': ${e.message}")
+                e.printStackTrace()
+                return
+            }
+
             printIntro()
             render(state, engine)
 
@@ -109,10 +117,10 @@ class KeyUiAdapter(private val engine: GameEngine) {
                 else -> {
                     val lc = ch.lowercaseChar()
                     when (lc) {
-                        'w' -> return InputEvent.MoveDirection(0)
-                        'a' -> return InputEvent.MoveDirection(1)
-                        's' -> return InputEvent.MoveDirection(2)
-                        'd' -> return InputEvent.MoveDirection(3)
+                        'w' -> return InputEvent.MoveDirection(InputEvent.Direction.North)
+                        'a' -> return InputEvent.MoveDirection(InputEvent.Direction.West)
+                        's' -> return InputEvent.MoveDirection(InputEvent.Direction.South)
+                        'd' -> return InputEvent.MoveDirection(InputEvent.Direction.East)
                         'l' -> return InputEvent.Look
                         'u' -> return InputEvent.Activate
                         'q' -> return null

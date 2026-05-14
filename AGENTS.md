@@ -15,30 +15,36 @@ or deleted easily.
 ## Tests
 
 - JUnit 5 + `kotlin.test.*`.
-- Keep tests concise.
-- Prove that complex or important logic works.
-- Coverage is not a priority.
- 
+- Keep tests concise. Prove that complex or important logic works. Coverage is not a priority.
+
 ## Build & Run
 
 ```sh
 ./gradlew build          # compile + test + jar
-./build/install/exploration-engine/bin/exploration-engine  # run CLI game
+./build/install/exploration-engine/bin/exploration-engine <scenario-file>  # TEXT UI
+./build/install/exploration-engine/bin/exploration-engine --ui KEY   <scenario-file>  # raw-key mode
+./build/install/exploration-engine/bin/exploration-engine --ui LANTERNA <scenario-file>  # TUI
 ```
 
 JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
 ## Structure
 
-Single-module Gradle (Kotlin 2.3.21, JUnit 5). 
-Entry: `exploration.cli.MainKt.main()`
+Single-module Gradle (Kotlin 2.3.21, JUnit 5). Entry: `exploration.cli.MainKt.main()`
 
 | Path | Contents |
 |---|---|
-| `model/` | Area, Device, Player, World data classes |
-| `state/` | Immutable GameState with win/lose check |
-| `command/` | Sealed Command (Look/Move/Activate), parseInput, processCommand |
-| `cli/Main.kt` | Read-eval-print loop |
+| `core/model/` | Area, Device, Player, World, Trigger, Item data classes |
+| `core/state/` | Immutable GameState with win/lose check |
+| `core/command/` | Sealed Command (Look/Move/Activate/TakeItem/DropItem/EquipItem/UnequipItem/Inventory), processCommand |
+| `core/engine/` | GameEngineImpl, TriggerEngine |
+| `port/` | Interfaces: GameEngine, ScenarioRepository; types: InputEvent, ViewData |
+| `adapter/` | JSON loader (`jsonloader/`), UI adapters (`text/`, `key/`, `lanterna/`) |
+| `scenario/` | `ScenarioFile.kt` (JSON entries), `ScenarioLoader.kt` (assembleGame) |
+
+## Scenario Format
+
+See `scenarios/SCENARIO_FORMAT.md` for full JSON file format spec. Read it into context before making scenario-related changes.
 
 ## Architecture
 
@@ -46,8 +52,7 @@ Pure functional core: `processCommand(GameState, Command) -> GameState`. Imperat
 
 ## Game Rules
 
-- Commands: `look`, `move <area>`, `activate` (alias: `use`) — case-insensitive
-- Default world: Forest → Cave ←→ Ruins, Tower (4 rooms)
+- Commands: `look`, `move w/a/s/d` (indexed directions), `activate/use`, `take <item>`, `drop <item>`, `equip <item>`, `unequip <item>`, `inv` — case-insensitive
 - Win: visit all areas + activate all devices. Lose: health ≤ 0.
 
 ---
@@ -56,6 +61,3 @@ Pure functional core: `processCommand(GameState, Command) -> GameState`. Imperat
 
 - No generated code, migrations, or build artifacts to manage
 - Gradle wrapper (`gradlew`) is the canonical build invocation
-- Health bar printed via `buildString` loop in `printStatus`
-- Area names use `lowercase()` comparison in move parsing
-- Player starts health=3, maxHealth=20; devices: Crystal(+10), Glyph Wall(0), Ancient Machine(-5), Orb(+3)

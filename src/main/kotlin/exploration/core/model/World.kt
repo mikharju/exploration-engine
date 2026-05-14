@@ -6,8 +6,10 @@ data class World(
 ) {
     init {
         require(areas.containsKey(startArea)) { "startArea must exist in world" }
-        areas.keys.forEach { id ->
-            require(id in areas) { "All connection targets must be valid AreaIds: $id" }
+        for ((areaId, area) in areas) {
+            for (target in area.connections) {
+                require(target in areas) { "Area '$areaId' connects to '$target', but no such area exists" }
+            }
         }
     }
 

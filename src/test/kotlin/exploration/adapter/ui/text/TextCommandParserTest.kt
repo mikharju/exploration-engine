@@ -22,19 +22,16 @@ class TextCommandParserTest {
     }
 
     @Test
-    fun `parseText handles bare direction keys`() {
-        assertEquals(InputEvent.MoveDirection(0), parseText("w"))
-        assertEquals(InputEvent.MoveDirection(1), parseText("a"))
-        assertEquals(InputEvent.MoveDirection(2), parseText("s"))
-        assertEquals(InputEvent.MoveDirection(3), parseText("d"))
-    }
+    fun `parseText handles direction via move verb`() {
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.North), parseText("move w"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.West), parseText("move a"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.South), parseText("move s"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.East), parseText("move d"))
 
-    @Test
-    fun `parseText handles move direction commands`() {
-        assertEquals(InputEvent.MoveDirection(0), parseText("move w"))
-        assertEquals(InputEvent.MoveDirection(1), parseText("move a"))
-        assertEquals(InputEvent.MoveDirection(2), parseText("move s"))
-        assertEquals(InputEvent.MoveDirection(3), parseText("move d"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.North), parseText("w"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.West), parseText("a"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.South), parseText("s"))
+        assertEquals(InputEvent.MoveDirection(InputEvent.Direction.East), parseText("d"))
     }
 
     @Test

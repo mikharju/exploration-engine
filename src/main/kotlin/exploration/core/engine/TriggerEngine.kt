@@ -3,18 +3,18 @@ package exploration.core.engine
 import exploration.model.*
 import exploration.state.GameState
 
-fun fireAreaTriggers(state: GameState, areaName: String): GameState {
-    val candidates = state.triggers.filter { it.ownerType == OwnerType.AREA && it.ownerId == areaName }
+fun fireAreaTriggers(state: GameState, areaId: AreaId): GameState {
+    val candidates = state.triggers.filter { it.owner is TriggerOwner.Area && it.areaId() == areaId }
     return fireMatchingTriggers(state, candidates)
 }
 
-fun fireDeviceTriggers(state: GameState, deviceId: String): GameState {
-    val candidates = state.triggers.filter { it.ownerType == OwnerType.DEVICE && it.ownerId == deviceId }
+fun fireDeviceTriggers(state: GameState, deviceId: DeviceId): GameState {
+    val candidates = state.triggers.filter { it.owner is TriggerOwner.Device && it.deviceId() == deviceId }
     return fireMatchingTriggers(state, candidates)
 }
 
 fun fireStatusTriggers(state: GameState): GameState {
-    val candidates = state.triggers.filter { it.ownerType == OwnerType.STATUS }
+    val candidates = state.triggers.filter { it.owner is TriggerOwner.Status }
     return fireMatchingTriggers(state, candidates)
 }
 
@@ -22,21 +22,17 @@ private fun fireMatchingTriggers(
     state: GameState,
     candidates: List<Trigger>
 ): GameState {
-    var current = state
     val newTexts = mutableListOf<String>()
     var player = state.player
     val updatedTriggers = mutableListOf<Trigger>()
-    val locationUpdates = mutableMapOf<String, Location>()
-    val lockedUpdates = mutableMapOf<String, Boolean>()
+    val locationUpdates = mutableMapOf<ItemId, Location>()
+    val lockedUpdates = mutableMapOf<ItemId, Boolean>()
 
     for (trigger in candidates) {
         if (trigger.remainingActivations <= 0) continue
 
-        fun effectiveLocation(itemName: String): Location? =
-            locationUpdates[itemName] ?: state.items.find { it.id.name == itemName }?.location
-
-        fun isLocked(itemName: String): Boolean =
-            lockedUpdates[itemName] ?: state.items.find { it.id.name == itemName }?.locked ?: false
+        fun effectiveLocation(itemId: ItemId): Location? =
+            locationUpdates[itemId] ?: state.items.find { it.id == itemId }?.location
 
         val conditionsMet = trigger.conditions.all { cond ->
             when (cond.checkType) {
@@ -54,8 +50,8 @@ private fun fireMatchingTriggers(
 
         if (!conditionsMet) continue
 
-        if (trigger.ownerType == OwnerType.STATUS && trigger.intervalTurns != null && trigger.lastFireTurn != null) {
-            val turnsSince = current.turn - trigger.lastFireTurn
+        if (trigger.owner is TriggerOwner.Status && trigger.intervalTurns != null && trigger.lastFireTurn != null) {
+            val turnsSince = state.turn - trigger.lastFireTurn
             if (turnsSince < trigger.intervalTurns) continue
         }
 
@@ -65,14 +61,14 @@ private fun fireMatchingTriggers(
                 is Effect.DisplayText -> newText += effect.text
                 is Effect.ChangeHealth -> player = player.adjustHealth(effect.amount)
                 is Effect.AdjustStatus -> player = player.adjustStatus(
-                    effect.statusName, effect.amount, current.statusBounds[effect.statusName]
+                    effect.statusName, effect.amount, state.statusBounds[effect.statusName]
                 )
                 is Effect.SetStatus -> player = player.setStatus(
-                    effect.statusName, effect.value, current.statusBounds[effect.statusName]
+                    effect.statusName, effect.value, state.statusBounds[effect.statusName]
                 )
                 is Effect.SetLocation -> {
-                    if (state.items.any { it.id.name == effect.itemId }) {
-                        locationUpdates[effect.itemId] = Location(effect.locationType, effect.locationId)
+                    if (state.items.any { it.id == effect.itemId }) {
+                        locationUpdates[effect.itemId] = Location.fromTarget(effect.target)
                     }
                 }
                 is Effect.LockItem -> lockedUpdates[effect.itemId] = true
@@ -83,31 +79,31 @@ private fun fireMatchingTriggers(
         newTexts.add(newText)
         updatedTriggers.add(trigger.copy(
             remainingActivations = trigger.remainingActivations - 1,
-            lastFireTurn = current.turn
+            lastFireTurn = state.turn
         ))
     }
 
     val allTriggers = if (updatedTriggers.isNotEmpty()) {
         val updatedMap = updatedTriggers.associateBy { it.id }
-        current.triggers.map { t -> updatedMap[t.id] ?: t }
+        state.triggers.map { t -> updatedMap[t.id] ?: t }
     } else {
-        current.triggers
+        state.triggers
     }
 
     val newItems = state.items.map { item ->
         var updated = item
-        if (item.id.name in locationUpdates) {
-            updated = updated.copy(location = locationUpdates[item.id.name]!!)
+        if (item.id in locationUpdates) {
+            updated = updated.copy(location = locationUpdates[item.id]!!)
         }
-        if (item.id.name in lockedUpdates) {
-            updated = updated.copy(locked = lockedUpdates[item.id.name]!!)
+        if (item.id in lockedUpdates) {
+            updated = updated.copy(locked = lockedUpdates[item.id]!!)
         }
         updated
     }
 
     val filteredTexts = newTexts.filter { it.isNotBlank() }
 
-    return current.copy(
+    return state.copy(
         player = player,
         triggerTexts = if (filteredTexts.isNotEmpty()) state.triggerTexts + filteredTexts else state.triggerTexts,
         triggers = allTriggers,

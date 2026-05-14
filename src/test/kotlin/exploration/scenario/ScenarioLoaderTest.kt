@@ -58,4 +58,34 @@ class ScenarioLoaderTest {
             assertFailsWith<IllegalArgumentException> { assembleGame(files.config, files.areas, files.devices) }
         } finally { dir.toFile().deleteRecursively() }
     }
+
+    @Test
+    fun `bad trigger item reference in condition throws`() {
+        val dir = Files.createTempDirectory("scenario-test")
+        try {
+            Files.writeString(dir.resolve("items.json"), """[{"id":"key","description":"A key.","initialLocationType":"AREA","initialLocationId":"A"}]""")
+            Files.writeString(dir.resolve("triggers.json"), """[{"id":"t1","ownerType":"AREA","ownerId":"A","conditions":[{"checkType":"itemCarried","itemId":"missingKey"}],"effects":[]}]""")
+            Files.writeString(dir.resolve("areas.json"), """[{"id":"A","description":"Room.","connections":[],"deviceId":null}]""")
+            Files.writeString(dir.resolve("devices.json"), "[]")
+            Files.writeString(dir.resolve("config.json"), """{"playerStart":{"health":10,"maxHealth":20,"startArea":"A"},"areasFile":"areas.json","devicesFile":"devices.json","itemsFile":"items.json","triggersFile":"triggers.json"}""")
+
+            val files = loadScenarioFiles(dir.resolve("config.json"))
+            assertFailsWith<IllegalArgumentException> { assembleGame(files.config, files.areas, files.devices, files.triggers, files.items) }
+        } finally { dir.toFile().deleteRecursively() }
+    }
+
+    @Test
+    fun `bad trigger item reference in effect throws`() {
+        val dir = Files.createTempDirectory("scenario-test")
+        try {
+            Files.writeString(dir.resolve("items.json"), """[{"id":"key","description":"A key.","initialLocationType":"AREA","initialLocationId":"A"}]""")
+            Files.writeString(dir.resolve("triggers.json"), """[{"id":"t1","ownerType":"AREA","ownerId":"A","conditions":[],"effects":[{"type":"lockItem","itemId":"missingKey"}]}]""")
+            Files.writeString(dir.resolve("areas.json"), """[{"id":"A","description":"Room.","connections":[],"deviceId":null}]""")
+            Files.writeString(dir.resolve("devices.json"), "[]")
+            Files.writeString(dir.resolve("config.json"), """{"playerStart":{"health":10,"maxHealth":20,"startArea":"A"},"areasFile":"areas.json","devicesFile":"devices.json","itemsFile":"items.json","triggersFile":"triggers.json"}""")
+
+            val files = loadScenarioFiles(dir.resolve("config.json"))
+            assertFailsWith<IllegalArgumentException> { assembleGame(files.config, files.areas, files.devices, files.triggers, files.items) }
+        } finally { dir.toFile().deleteRecursively() }
+    }
 }

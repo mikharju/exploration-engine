@@ -18,11 +18,17 @@ data class ScenarioFiles(
     val items: List<ItemEntry> = emptyList()
 )
 
+private inline fun <reified T : Any> parse(path: Path, text: String): T = runCatching {
+    json.decodeFromString<T>(text)
+}.getOrElse { e ->
+    throw IllegalArgumentException("Failed to parse $path: ${e.message}", e)
+}
+
 fun loadScenarioFiles(configPath: Path): ScenarioFiles {
     require(configPath.toFile().exists()) { "Scenario file not found: $configPath" }
     require(configPath.toFile().isFile) { "Not a file: $configPath" }
 
-    val config = json.decodeFromString<ScenarioConfig>(configPath.toFile().readText())
+    val config = parse<ScenarioConfig>(configPath, configPath.toFile().readText())
     val baseDir = configPath.parent
         ?: throw IllegalArgumentException("Cannot determine parent directory of: $configPath")
 
@@ -35,19 +41,19 @@ fun loadScenarioFiles(configPath: Path): ScenarioFiles {
     val triggers = config.triggersFile?.let { file ->
         val triggersPath = baseDir.resolve(file)
         require(triggersPath.toFile().exists()) { "Triggers file not found: $triggersPath" }
-        json.decodeFromString<List<TriggerEntry>>(triggersPath.toFile().readText())
+        parse<List<TriggerEntry>>(triggersPath, triggersPath.toFile().readText())
     } ?: emptyList()
 
     val items = config.itemsFile?.let { file ->
         val itemsPath = baseDir.resolve(file)
         require(itemsPath.toFile().exists()) { "Items file not found: $itemsPath" }
-        json.decodeFromString<List<ItemEntry>>(itemsPath.toFile().readText())
+        parse<List<ItemEntry>>(itemsPath, itemsPath.toFile().readText())
     } ?: emptyList()
 
     return ScenarioFiles(
         config = config,
-        devices = json.decodeFromString<List<DeviceEntry>>(devicesPath.toFile().readText()),
-        areas = json.decodeFromString<List<AreaEntry>>(areasPath.toFile().readText()),
+        devices = parse<List<DeviceEntry>>(devicesPath, devicesPath.toFile().readText()),
+        areas = parse<List<AreaEntry>>(areasPath, areasPath.toFile().readText()),
         triggers = triggers,
         items = items
     )

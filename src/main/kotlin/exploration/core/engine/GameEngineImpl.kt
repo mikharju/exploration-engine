@@ -3,6 +3,7 @@ package exploration.core.engine
 import exploration.command.Command
 import exploration.command.processCommand
 import exploration.model.ItemLocationType
+import exploration.model.LocationTarget
 import exploration.port.*
 import exploration.state.GameState
 
@@ -19,7 +20,7 @@ class GameEngineImpl(
         val command: Command? = when (event) {
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
-            is InputEvent.MoveDirection -> resolveDirection(state, event.index)
+            is InputEvent.MoveDirection -> resolveDirection(state, event.direction.index)
             is InputEvent.TakeItem -> Command.TakeItem(event.itemName)
             is InputEvent.DropItem -> Command.DropItem(event.itemName)
             is InputEvent.EquipItem -> Command.EquipItem(event.itemName)
@@ -56,7 +57,7 @@ class GameEngineImpl(
             gameOver = state.isOver,
             win = state.win,
             areaItems = state.items
-                .filter { it.location.type == ItemLocationType.AREA && it.location.id == area.id.name }
+                .filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == area.id }
                 .map { ItemView(it.id.name, it.description) },
             carriedItems = buildItemViews(state, ItemLocationType.CARRIED),
             equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED)

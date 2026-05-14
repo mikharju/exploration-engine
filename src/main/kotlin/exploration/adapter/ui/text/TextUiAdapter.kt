@@ -6,7 +6,15 @@ import exploration.port.ViewData
 class TextUiAdapter(private val engine: GameEngine) {
 
     fun run(scenarioId: String) {
-        var state = engine.start(scenarioId)
+        var state: exploration.state.GameState
+        try {
+            state = engine.start(scenarioId)
+        } catch (e: Exception) {
+            println("Error loading scenario '$scenarioId': ${e.message}")
+            e.printStackTrace()
+            return
+        }
+
         printIntro()
         render(state, engine)
 

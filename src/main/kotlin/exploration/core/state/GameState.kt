@@ -24,7 +24,6 @@ data class GameState(
     val triggers: List<Trigger> = emptyList(),
     val items: List<Item> = emptyList()
 ) {
-    val output: String get() = if (triggerTexts.isEmpty()) commandOutput else "$commandOutput\n${triggerTexts.joinToString("\n")}"
     fun allDeviceIds(): Set<DeviceId> {
         val devices = mutableSetOf<DeviceId>()
         for (area in world.areas.values) {

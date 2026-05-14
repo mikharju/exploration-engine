@@ -37,8 +37,8 @@ fun processCommand(state: GameState, command: Command): GameState {
 
 private data class CmdResult(
     val state: GameState,
-    val movedToArea: String?,
-    val activatedDeviceId: String?,
+    val movedToArea: AreaId?,
+    val activatedDeviceId: DeviceId?,
     val isLook: Boolean
 )
 
@@ -60,7 +60,7 @@ private fun runMove(state: GameState, targetName: String): CmdResult {
             player = state.player.copy(currentArea = targetId),
             commandOutput = "You move to the ${targetId.name}."
         ),
-        targetId.name,
+        targetId,
         null,
         false
     )
@@ -106,7 +106,7 @@ private fun runActivate(state: GameState): CmdResult {
             commandOutput = "${device.activateDescription}$suffix"
         ),
         null,
-        device.id.name,
+        device.id,
         false
     )
 }
@@ -117,13 +117,13 @@ private fun processLook(state: GameState): GameState {
 
     val deviceText = area.device?.let { d ->
         if (d.id in state.activatedDevices) {
-            "\nYou see a deactivated ${d.id} here."
+            "\n${d.id} has been activated."
         } else {
             "\n${d.lookDescription}"
         }
     } ?: ""
 
-    val roomItems = state.items.filter { it.location.type == ItemLocationType.AREA && it.location.id == areaId.name }
+    val roomItems = state.items.filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == areaId }
     val itemText = if (roomItems.isNotEmpty()) {
         "\nYou see: ${roomItems.joinToString(", ") { it.id.name }}"
     } else ""
@@ -143,7 +143,7 @@ private fun runTake(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
         ?: return CmdResult(state.copy(commandOutput = "There's no item called '$itemName' here."), null, null, false)
 
-    if (item.location.type != ItemLocationType.AREA || item.location.id != state.player.currentArea.name) {
+    if (item.location.type != ItemLocationType.AREA || (item.location.target as? LocationTarget.InArea)?.areaId != state.player.currentArea) {
         return CmdResult(state.copy(commandOutput = "That item isn't here."), null, null, false)
     }
 
@@ -169,7 +169,7 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
             return CmdResult(state.copy(commandOutput = "You can't drop the ${item.id.name} — it's locked."), null, null, false)
         }
         val newItems = state.items.map { i ->
-            if (i.id == item.id) i.copy(location = Location(ItemLocationType.AREA, state.player.currentArea.name)) else i
+            if (i.id == item.id) i.copy(location = Location.area(state.player.currentArea)) else i
         }
 
         return CmdResult(
@@ -190,7 +190,7 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
     }
 
     val newItems = state.items.map { i ->
-        if (i.id == item.id) i.copy(location = Location(ItemLocationType.AREA, state.player.currentArea.name)) else i
+        if (i.id == item.id) i.copy(location = Location.area(state.player.currentArea)) else i
     }
 
     return CmdResult(

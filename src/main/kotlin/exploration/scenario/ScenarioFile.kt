@@ -1,6 +1,9 @@
 package exploration.scenario
 
 import exploration.model.ItemLocationType
+import exploration.model.LocationTarget
+import exploration.model.AreaId
+import exploration.model.DeviceId
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -55,7 +58,12 @@ data class ItemEntry(
             "EQUIPPED" -> ItemLocationType.EQUIPPED
             else -> error("Unknown location type: $initialLocationType")
         }
-        return exploration.model.Location(type, initialLocationId)
+        val target = when (type) {
+            ItemLocationType.AREA -> LocationTarget.InArea(AreaId(checkNotNull(initialLocationId)))
+            ItemLocationType.DEVICE -> LocationTarget.OnDevice(DeviceId(checkNotNull(initialLocationId)))
+            else -> null
+        }
+        return exploration.model.Location(type, target)
     }
 }
 

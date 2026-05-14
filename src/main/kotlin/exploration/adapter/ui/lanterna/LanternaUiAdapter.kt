@@ -30,6 +30,18 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
     fun run(scenarioId: String) {
         val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
+
+        var state: exploration.state.GameState
+        try {
+            state = engine.start(scenarioId)
+        } catch (e: Exception) {
+            println("Error loading scenario '$scenarioId': ${e.message}")
+            e.printStackTrace()
+            return
+        } finally {
+            screen.stopScreen()
+        }
+
         screen.startScreen()
         screen.cursorPosition = null
 
@@ -37,7 +49,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         var shownTriggers = 0
         var selectionState: SelectionState? = null
 
-        var state = engine.start(scenarioId)
         addMessage(history, "=== Exploration Engine (Lanterna) ===", false)
         addMessage(
             history,
@@ -124,16 +135,16 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         when (key.keyType) {
             KeyType.Escape -> return ReadInputResult(KeyAction.Quit, null)
-            KeyType.ArrowUp -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(0)), null)
-            KeyType.ArrowDown -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(2)), null)
-            KeyType.ArrowLeft -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(1)), null)
-            KeyType.ArrowRight -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(3)), null)
+            KeyType.ArrowUp -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), null)
+            KeyType.ArrowDown -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), null)
+            KeyType.ArrowLeft -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), null)
+            KeyType.ArrowRight -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), null)
             KeyType.Character -> {
                 when (key.character.lowercaseChar()) {
-                    'w' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(0)), null)
-                    'a' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(1)), null)
-                    's' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(2)), null)
-                    'd' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(3)), null)
+                    'w' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), null)
+                    'a' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), null)
+                    's' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), null)
+                    'd' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), null)
                     'l' -> return ReadInputResult(KeyAction.Event(InputEvent.Look), null)
                     'u' -> return ReadInputResult(KeyAction.Event(InputEvent.Activate), null)
                     'g' -> {
