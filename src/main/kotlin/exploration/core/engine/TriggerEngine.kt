@@ -22,90 +22,93 @@ private fun fireMatchingTriggers(
     state: GameState,
     candidates: List<Trigger>
 ): GameState {
-    val newTexts = mutableListOf<String>()
-    var player = state.player
-    val updatedTriggers = mutableListOf<Trigger>()
-    val locationUpdates = mutableMapOf<ItemId, Location>()
-    val lockedUpdates = mutableMapOf<ItemId, Boolean>()
+    data class EffectsAccumulator(
+        val player: Player = state.player,
+        val newTexts: List<String> = emptyList(),
+        val locationUpdates: Map<ItemId, Location> = emptyMap(),
+        val lockedUpdates: Map<ItemId, Boolean> = emptyMap()
+    )
+    data class MutationAccumulator(
+        val items: List<Item>,
+        val turn: Int,
+        val updatedTriggers: Map<String, Trigger> = emptyMap(),
+        val effectsAcc: EffectsAccumulator = EffectsAccumulator()
+    )
 
-    for (trigger in candidates) {
-        if (trigger.remainingActivations <= 0) continue
+    fun effectiveLocation(accum: MutationAccumulator, itemId: ItemId): Location? =
+        accum.effectsAcc.locationUpdates[itemId] ?: state.items.find { it.id == itemId }?.location
 
-        fun effectiveLocation(itemId: ItemId): Location? =
-            locationUpdates[itemId] ?: state.items.find { it.id == itemId }?.location
+    val finalAcc = candidates.fold(MutationAccumulator(state.items, state.turn)) { acc, trigger ->
+        if (trigger.remainingActivations <= 0) return@fold acc
 
         val conditionsMet = trigger.conditions.all { cond ->
             when (cond.checkType) {
                 CheckType.STATUS -> {
-                    val statusValue = cond.statusName?.let { player.statuses.getOrElse(it) { 0 } } ?: 0
+                    val statusValue = cond.statusName?.let {
+                        acc.effectsAcc.player.statuses.getOrElse(it) { 0 }
+                    } ?: 0
                     when (cond.op) {
                         ComparisonOp.GT -> statusValue > cond.threshold
                         ComparisonOp.LT -> statusValue < cond.threshold
                     }
                 }
-                CheckType.ITEM_CARRIED -> cond.itemId?.let { effectiveLocation(it)?.type == ItemLocationType.CARRIED } ?: false
-                CheckType.ITEM_EQUIPPED -> cond.itemId?.let { effectiveLocation(it)?.type == ItemLocationType.EQUIPPED } ?: false
+                CheckType.ITEM_CARRIED -> cond.itemId?.let {
+                    effectiveLocation(acc, it)?.type == ItemLocationType.CARRIED
+                } ?: false
+                CheckType.ITEM_EQUIPPED -> cond.itemId?.let {
+                    effectiveLocation(acc, it)?.type == ItemLocationType.EQUIPPED
+                } ?: false
             }
         }
 
-        if (!conditionsMet) continue
+        if (!conditionsMet) return@fold acc
 
+        // Interval check for STATUS triggers
         if (trigger.owner is TriggerOwner.Status && trigger.intervalTurns != null && trigger.lastFireTurn != null) {
             val turnsSince = state.turn - trigger.lastFireTurn
-            if (turnsSince < trigger.intervalTurns) continue
+            if (turnsSince < trigger.intervalTurns) return@fold acc
         }
 
-        var newText = ""
-        for (effect in trigger.effects) {
+        // Apply effects within this trigger's scope
+        val newEffects: EffectsAccumulator = trigger.effects.fold(acc.effectsAcc) { effAcc, effect ->
             when (effect) {
-                is Effect.DisplayText -> newText += effect.text
-                is Effect.ChangeHealth -> player = player.adjustHealth(effect.amount)
-                is Effect.AdjustStatus -> player = player.adjustStatus(
-                    effect.statusName, effect.amount, state.statusBounds[effect.statusName]
-                )
-                is Effect.SetStatus -> player = player.setStatus(
-                    effect.statusName, effect.value, state.statusBounds[effect.statusName]
-                )
-                is Effect.SetLocation -> {
-                    if (state.items.any { it.id == effect.itemId }) {
-                        locationUpdates[effect.itemId] = Location.fromTarget(effect.target)
-                    }
-                }
-                is Effect.LockItem -> lockedUpdates[effect.itemId] = true
-                is Effect.UnlockItem -> lockedUpdates[effect.itemId] = false
+                is Effect.DisplayText -> if (effect.text.isNotBlank()) effAcc.copy(newTexts = effAcc.newTexts + effect.text) else effAcc
+                is Effect.ChangeHealth -> effAcc.copy(player = effAcc.player.adjustHealth(effect.amount))
+                is Effect.AdjustStatus -> effAcc.copy(player = effAcc.player.adjustStatus(
+                    effect.statusName, effect.amount, state.statusBounds[effect.statusName]))
+                is Effect.SetStatus -> effAcc.copy(player = effAcc.player.setStatus(
+                    effect.statusName, effect.value, state.statusBounds[effect.statusName]))
+                is Effect.SetLocation ->
+                    if (state.items.any { it.id == effect.itemId }) effAcc.copy(locationUpdates = effAcc.locationUpdates + (effect.itemId to Location.fromTarget(effect.target)))
+                    else effAcc
+                is Effect.LockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to true))
+                is Effect.UnlockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to false))
             }
         }
 
-        newTexts.add(newText)
-        updatedTriggers.add(trigger.copy(
-            remainingActivations = trigger.remainingActivations - 1,
-            lastFireTurn = state.turn
-        ))
+        acc.copy(
+            effectsAcc = newEffects,
+            updatedTriggers = acc.updatedTriggers + (trigger.id to trigger.copy(
+                remainingActivations = trigger.remainingActivations - 1,
+                lastFireTurn = state.turn
+            ))
+        )
     }
 
-    val allTriggers = if (updatedTriggers.isNotEmpty()) {
-        val updatedMap = updatedTriggers.associateBy { it.id }
-        state.triggers.map { t -> updatedMap[t.id] ?: t }
+    val allTriggers = if (finalAcc.updatedTriggers.isNotEmpty()) {
+        state.triggers.map { t -> finalAcc.updatedTriggers[t.id] ?: t }
     } else {
         state.triggers
     }
 
     val newItems = state.items.map { item ->
-        var updated = item
-        if (item.id in locationUpdates) {
-            updated = updated.copy(location = locationUpdates[item.id]!!)
-        }
-        if (item.id in lockedUpdates) {
-            updated = updated.copy(locked = lockedUpdates[item.id]!!)
-        }
-        updated
+        val itemElsewhere = if (item.id in finalAcc.effectsAcc.locationUpdates) item.copy(location = finalAcc.effectsAcc.locationUpdates[item.id]!!) else item
+        if (item.id in finalAcc.effectsAcc.lockedUpdates) itemElsewhere.copy(locked = finalAcc.effectsAcc.lockedUpdates[item.id]!!) else itemElsewhere
     }
 
-    val filteredTexts = newTexts.filter { it.isNotBlank() }
-
     return state.copy(
-        player = player,
-        triggerTexts = if (filteredTexts.isNotEmpty()) state.triggerTexts + filteredTexts else state.triggerTexts,
+        player = finalAcc.effectsAcc.player,
+        triggerTexts = if (finalAcc.effectsAcc.newTexts.isNotEmpty()) state.triggerTexts + finalAcc.effectsAcc.newTexts else state.triggerTexts,
         triggers = allTriggers,
         items = newItems
     )

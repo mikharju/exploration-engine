@@ -48,7 +48,14 @@ See `scenarios/SCENARIO_FORMAT.md` for full JSON file format spec. Read it into 
 
 ## Architecture
 
-Pure functional core: `processCommand(GameState, Command) -> GameState`. Imperative shell in Main.kt. State transitions via `copy(...)`.
+- Pure functional core: `processCommand(GameState, Command) -> GameState`. Imperative shell in Main.kt. State transitions via `copy(...)`.
+- Put logic and decision making into core, keep UIs and adapters thin when it makes sense (example: command validation logic in core)
+
+## Agent behavior
+
+- Prefer Grep and Glob when finding files to read instead of find and other bash commands when possible
+- Do not spawn multiple sub agents in parallel, one at a time only
+- If there is need to use temporary files, put them inside project directory under temp directory. These include extracted library sources when finding out how a library works.
 
 ## Game Rules
 

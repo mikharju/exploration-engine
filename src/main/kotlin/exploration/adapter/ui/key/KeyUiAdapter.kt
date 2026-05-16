@@ -9,9 +9,9 @@ class KeyUiAdapter(private val engine: GameEngine) {
         AnsiConsole.systemInstall()
         enableRawInput()
         try {
-            var state: exploration.state.GameState
+            var ref: GameRef
             try {
-                state = engine.start(scenarioId)
+                ref = engine.start(scenarioId)
             } catch (e: Exception) {
                 println("Error loading scenario '$scenarioId': ${e.message}")
                 e.printStackTrace()
@@ -19,20 +19,22 @@ class KeyUiAdapter(private val engine: GameEngine) {
             }
 
             printIntro()
-            render(state, engine)
+            val initialView = engine.tick(ref, InputEvent.Look)
+            render(initialView)
 
-            while (!engine.view(state).gameOver) {
+            var lastView = initialView
+            while (!lastView.gameOver) {
                 val event = waitForInput()
                 when (event) {
                     null -> break
                     else -> {
-                        state = engine.tick(state, event)
-                        render(state, engine)
+                        lastView = engine.tick(ref, event)
+                        render(lastView)
                     }
                 }
             }
 
-            showEnd(engine.view(state))
+            showEnd(engine.tick(ref, InputEvent.Look))
         } finally {
             disableRawInput()
             AnsiConsole.systemUninstall()
@@ -60,8 +62,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
         runStty("icanon echo")
     }
 
-    private fun render(state: exploration.state.GameState, eng: GameEngine) {
-        val v = eng.view(state)
+    private fun render(v: ViewData) {
         if (v.outputLine.isNotBlank()) println(v.outputLine)
         printStatus(v)
     }

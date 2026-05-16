@@ -1,6 +1,7 @@
 package exploration.cli
 
 import exploration.adapter.jsonloader.JsonScenarioRepository
+import exploration.adapter.storage.InMemoryGameStateStore
 import exploration.adapter.ui.key.KeyUiAdapter
 import exploration.adapter.ui.lanterna.LanternaUiAdapter
 import exploration.adapter.ui.text.TextUiAdapter
@@ -12,7 +13,8 @@ fun main(args: Array<String>) {
     val (mode, scenarioPath) = parseArgs(args)
         ?: error("Usage: exploration-engine [--ui TEXT|KEY] <scenario-file>")
 
-    val engine = GameEngineImpl(JsonScenarioRepository())
+    val repo = JsonScenarioRepository()
+    val engine = GameEngineImpl(repo, InMemoryGameStateStore(repo))
 
     when (mode) {
         UiMode.TEXT     -> TextUiAdapter(engine).run(scenarioPath)

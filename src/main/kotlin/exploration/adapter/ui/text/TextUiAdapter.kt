@@ -1,14 +1,16 @@
 package exploration.adapter.ui.text
 
 import exploration.port.GameEngine
+import exploration.port.GameRef
+import exploration.port.InputEvent
 import exploration.port.ViewData
 
 class TextUiAdapter(private val engine: GameEngine) {
 
     fun run(scenarioId: String) {
-        var state: exploration.state.GameState
+        var ref: GameRef
         try {
-            state = engine.start(scenarioId)
+            ref = engine.start(scenarioId)
         } catch (e: Exception) {
             println("Error loading scenario '$scenarioId': ${e.message}")
             e.printStackTrace()
@@ -16,9 +18,11 @@ class TextUiAdapter(private val engine: GameEngine) {
         }
 
         printIntro()
-        render(state, engine)
+        val initialView = engine.tick(ref, InputEvent.Look)
+        render(initialView)
 
-        while (!engine.view(state).gameOver) {
+        var lastView = initialView
+        while (!lastView.gameOver) {
             print("> ")
             val line = readLine()?.trim() ?: break
             if (line.isEmpty()) continue
@@ -26,24 +30,24 @@ class TextUiAdapter(private val engine: GameEngine) {
 
             val event = parseText(line)
                 ?: run {
-                    state = state.copy(commandOutput = "Unknown command.\nCommands: l, u, w/a/s/d, take <item>, drop <item>, equip <item>, unequip <item>, inv, help, quit")
-                    render(state, engine)
+                    println("Unknown command.\nCommands: l, u, w/a/s/d, take <item>, drop <item>, equip <item>, unequip <item>, inv, help, quit")
+                    printStatus(lastView)
                     continue
                 }
             if (line.lowercase() == "help") {
-                state = state.copy(commandOutput = "Commands: l(ook), u(se/activate), w/a/s/d(move by direction), help, quit\nExits are listed below with their key bindings.")
-                render(state, engine)
+                println("Commands: l(ook), u(se/activate), w/a/s/d(move by direction), help, quit\nExits are listed below with their key bindings.")
+                printStatus(lastView)
                 continue
             }
-            state = engine.tick(state, event)
-            render(state, engine)
+            lastView = engine.tick(ref, event)
+            render(lastView)
         }
 
-        showEnd(engine.view(state))
+        val finalView = engine.tick(ref, InputEvent.Look)
+        showEnd(finalView)
     }
 
-    private fun render(state: exploration.state.GameState, eng: GameEngine) {
-        val v = eng.view(state)
+    private fun render(v: ViewData) {
         if (v.outputLine.isNotBlank()) println(v.outputLine)
         printStatus(v)
     }

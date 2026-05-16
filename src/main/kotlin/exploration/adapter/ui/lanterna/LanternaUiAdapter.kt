@@ -10,6 +10,7 @@ import com.googlecode.lanterna.screen.TerminalScreen
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory
 import exploration.model.StatusRange
 import exploration.port.GameEngine
+import exploration.port.GameRef
 import exploration.port.InputEvent
 import exploration.port.ItemView
 import exploration.port.ViewData
@@ -29,19 +30,17 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     private data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
 
     fun run(scenarioId: String) {
-        val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
-
-        var state: exploration.state.GameState
+        var ref: GameRef
         try {
-            state = engine.start(scenarioId)
+            ref = engine.start(scenarioId)
         } catch (e: Exception) {
             println("Error loading scenario '$scenarioId': ${e.message}")
             e.printStackTrace()
             return
-        } finally {
-            screen.stopScreen()
         }
 
+        val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
+        screen.stopScreen()
         screen.startScreen()
         screen.cursorPosition = null
 
@@ -61,56 +60,55 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             false
         )
 
-        render(screen, engine.view(state), history)
+        var currentView = engine.tick(ref, InputEvent.Look)
+        render(screen, currentView, history)
 
-        while (!engine.view(state).gameOver) {
+        while (!currentView.gameOver) {
             screen.doResizeIfNecessary()
-            val viewBefore = engine.view(state)
-            val result = readInputKey(screen, viewBefore, selectionState)
+            val result = readInputKey(screen, currentView, selectionState)
             selectionState = result.selectionState
 
             when (result.action) {
                 is KeyAction.Quit -> break
                 is KeyAction.Help -> {
                     addMessage(history, "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | h: help | q/esc: quit", false)
-                    render(screen, engine.view(state), history)
+                    render(screen, currentView, history)
                     continue
                 }
                 is KeyAction.WaitSelection -> {
-                    val ss = selectionState!!
-                    addMessage(history, buildSelectionPrompt(ss.target, ss.items), false)
-                    render(screen, viewBefore, history)
+                    val sel = selectionState!!
+                    addMessage(history, buildSelectionPrompt(sel.target, sel.items), false)
+                    render(screen, currentView, history)
                     continue
                 }
                 is KeyAction.Event -> {
-                    state = engine.tick(state, result.action.event)
-                    val viewAfter = engine.view(state)
-                    if (viewAfter.commandText.isNotBlank()) addMessage(history, viewAfter.commandText, false)
-                    val newTriggerCount = viewAfter.triggerTexts.size - shownTriggers
+                    val next = engine.tick(ref, result.action.event)
+                    currentView = next
+                    if (next.commandText.isNotBlank()) addMessage(history, next.commandText, false)
+                    val newTriggerCount = next.triggerTexts.size - shownTriggers
                     for (i in 0 until newTriggerCount) {
-                        val triggerText = viewAfter.triggerTexts[shownTriggers + i]
+                        val triggerText = next.triggerTexts[shownTriggers + i]
                         if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
                     }
-                    shownTriggers = viewAfter.triggerTexts.size
-                    render(screen, viewAfter, history)
+                    shownTriggers = next.triggerTexts.size
+                    render(screen, currentView, history)
                 }
             }
         }
 
-        val finalView = engine.view(state)
-        for (i in shownTriggers until finalView.triggerTexts.size) {
-            if (finalView.triggerTexts[i].isNotBlank()) addMessage(history, finalView.triggerTexts[i], true)
+        for (i in shownTriggers until currentView.triggerTexts.size) {
+            if (currentView.triggerTexts[i].isNotBlank()) addMessage(history, currentView.triggerTexts[i], true)
         }
         addMessage(
             history,
-            if (finalView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ===",
+            if (currentView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ===",
             false
         )
         screen.doResizeIfNecessary()
-        render(screen, finalView, history)
+        render(screen, currentView, history)
 
         screen.stopScreen()
-        printEndSummary(finalView, history)
+        printEndSummary(currentView, history)
     }
 
     private sealed class KeyAction {
@@ -521,6 +519,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val namePart = if (label.contains("] ")) label.substringAfter("] ") else ""
         g.foregroundColor = if (active) TextColor.ANSI.WHITE else TextColor.ANSI.DEFAULT
         g.putString(nameStart, pos.row, namePart)
+
         g.disableModifiers(SGR.BOLD)
     }
 

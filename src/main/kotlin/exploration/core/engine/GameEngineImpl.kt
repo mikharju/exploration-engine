@@ -8,14 +8,15 @@ import exploration.port.*
 import exploration.state.GameState
 
 class GameEngineImpl(
-    private val scenarioRepo: ScenarioRepository
+    private val scenarioRepo: exploration.port.ScenarioRepository,
+    private val store: GameStateStore
 ) : GameEngine {
 
-    override fun start(scenarioId: String): GameState =
-        scenarioRepo.load(scenarioId)
+    override fun start(scenarioId: String): GameRef = store.createGame(scenarioId)
 
-    override fun tick(state: GameState, event: InputEvent): GameState {
-        if (state.isOver) return state.copy(commandOutput = "Game is over. Restart to play again.")
+    override fun tick(ref: GameRef, event: InputEvent): ViewData {
+        var state = store.loadGame(ref)
+        if (state.isOver) return makeGameOverView(state, "Game is over. Restart to play again.")
 
         val command: Command? = when (event) {
             is InputEvent.Look -> Command.Look
@@ -28,9 +29,9 @@ class GameEngineImpl(
             is InputEvent.Inventory -> Command.Inventory
         }
 
-        return if (command != null) processCommand(state, command) else state.copy(
-            commandOutput = "Can't move that way."
-        )
+        state = if (command != null) processCommand(state, command) else state.copy(commandOutput = "Can't move that way.")
+        store.saveGame(ref, state)
+        return makeView(state)
     }
 
     private fun resolveDirection(state: GameState, index: Int): Command? {
@@ -38,7 +39,7 @@ class GameEngineImpl(
         return Command.Move(exitName)
     }
 
-    override fun view(state: GameState): ViewData {
+    private fun makeView(state: GameState): ViewData {
         val area = state.world.getArea(state.player.currentArea)
         return ViewData(
             commandText = state.commandOutput,
@@ -61,6 +62,30 @@ class GameEngineImpl(
                 .map { ItemView(it.id.name, it.description) },
             carriedItems = buildItemViews(state, ItemLocationType.CARRIED),
             equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED)
+        )
+    }
+
+    private fun makeGameOverView(state: GameState, commandOutput: String): ViewData {
+        val area = state.world.getArea(state.player.currentArea)
+        return ViewData(
+            commandText = commandOutput,
+            triggerTexts = emptyList(),
+            outputLine = commandOutput,
+            health = state.player.health,
+            maxHealth = state.player.maxHealth,
+            currentAreaName = area.id.name,
+            exploredCount = state.exploredAreas.size,
+            totalAreas = state.world.areas.size,
+            activatedCount = state.activatedDevices.size,
+            totalDevices = state.allDeviceIds().size,
+            exits = sortedExits(state),
+            statuses = emptyMap(),
+            statusBounds = emptyMap(),
+            gameOver = true,
+            win = false,
+            areaItems = emptyList(),
+            carriedItems = emptyList(),
+            equippedItems = emptyList()
         )
     }
 
