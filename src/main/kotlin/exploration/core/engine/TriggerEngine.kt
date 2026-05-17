@@ -53,6 +53,9 @@ private fun fireMatchingTriggers(
                     when (cond.op) {
                         ComparisonOp.GT -> statusValue > cond.threshold
                         ComparisonOp.LT -> statusValue < cond.threshold
+                        ComparisonOp.LTE -> statusValue <= cond.threshold
+                        ComparisonOp.GTE -> statusValue >= cond.threshold
+                        ComparisonOp.EQ -> statusValue == cond.threshold
                     }
                 }
                 CheckType.ITEM_CARRIED -> cond.itemId?.let {

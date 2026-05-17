@@ -79,6 +79,14 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         var currentView = engine.tick(ref, InputEvent.Look)
         render(screen, currentView, history, overlay)
 
+        val initialStoryCount = currentView.storyMessages.size
+        storedStoryCount = initialStoryCount
+        if (initialStoryCount > 0) {
+            val subList = currentView.storyMessages.subList(0, initialStoryCount)
+            overlay = Overlay.MessageViewer(subList, focusedIndex = subList.lastIndex)
+            render(screen, currentView, history, overlay)
+        }
+
         while (currentView.endGameMessage == null) {
             screen.doResizeIfNecessary()
             val result = readInputKey(screen, currentView, selectionState, overlay)

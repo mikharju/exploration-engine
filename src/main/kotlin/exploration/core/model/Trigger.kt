@@ -12,7 +12,7 @@ data class ActivationCondition(
     val itemId: ItemId? = null
 )
 
-enum class ComparisonOp { GT, LT }
+enum class ComparisonOp { GT, LT, LTE, GTE, EQ }
 
 sealed interface TriggerOwner {
     data class Area(val areaId: AreaId) : TriggerOwner

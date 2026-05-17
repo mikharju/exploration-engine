@@ -145,7 +145,7 @@ All conditions must pass. Omit for unconditional triggers.
 |---|---|---|
 | `checkType` | string | `itemCarried`, `itemEquipped`, or omit for status check |
 | `statusName` | string | Status to check (default: STATUS) |
-| `op` | string | `>` or `<`. **Default: `>`** |
+| `op` | string | `>`, `<`, `<=`, `>=`, or `==`. **Default: `>`** |
 | `threshold` | int | Value to compare against. **Default: 0** |
 | `itemId` | string | Item ID for item checks |
 

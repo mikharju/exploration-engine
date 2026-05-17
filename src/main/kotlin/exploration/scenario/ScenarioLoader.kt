@@ -137,6 +137,9 @@ private fun buildTriggers(triggerEntries: List<TriggerEntry>): List<Trigger> = t
                 op = when (cond.op) {
                     ">" -> ComparisonOp.GT
                     "<" -> ComparisonOp.LT
+                    "<=" -> ComparisonOp.LTE
+                    ">=" -> ComparisonOp.GTE
+                    "==" -> ComparisonOp.EQ
                     null -> ComparisonOp.GT
                     else -> error("Unknown operator: ${cond.op}")
                 },
