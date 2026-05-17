@@ -80,22 +80,31 @@ class KeyUiAdapter(private val engine: GameEngine) {
         printWasdLayout(v.exits)
     }
 
-    private fun printWasdLayout(exits: List<String?>) {
-        val w = exits.getOrNull(0) ?: ""
-        val a = exits.getOrNull(1) ?: ""
-        val s = exits.getOrNull(2) ?: ""
-        val d = exits.getOrNull(3) ?: ""
+    private fun printWasdLayout(exits: List<ExitInfo?>) {
+        val w = exits.getOrNull(0)
+        val a = exits.getOrNull(1)
+        val s = exits.getOrNull(2)
+        val d = exits.getOrNull(3)
 
         println()
-        val padW = if (w.isEmpty()) "  [w]       " else "  [w] $w    "
+        val padW = if (w == null || w.name.isNullOrEmpty()) "  [w]       " else {
+            val suffix = if (w.blocked) " (B)" else ""
+            "  [w] ${w.name}$suffix    "
+        }
         println(padW.padEnd(40))
         println()
 
-        val leftPad = (26 - a.length).coerceAtLeast(3)
-        println("[a] ${a.ifEmpty { "  " }}${" ".repeat(leftPad)}[d] ${d.ifEmpty { "  " }}")
+        val aName = a?.name ?: ""
+        val dName = d?.name ?: ""
+        val leftPad = (26 - aName.length).coerceAtLeast(3)
+        println("[a] ${aName.ifEmpty { "  " }}${" ".repeat(leftPad)}[d] ${dName.ifEmpty { "  " }}")
         println()
 
-        val padS = if (s.isEmpty()) "  [s]       " else "  [s] $s    "
+        val sName = s?.name ?: ""
+        val padS = if (sName.isEmpty()) "  [s]       " else {
+            val suffix = if (s!!.blocked) " (B)" else ""
+            "  [s] ${sName}$suffix    "
+        }
         println(padS.padEnd(40))
     }
 

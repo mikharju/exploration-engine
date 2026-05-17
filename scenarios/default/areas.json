@@ -24,7 +24,8 @@
     "description": "Crumbled stone ruins overgrown with vines.",
     "connections": [],
     "exits": [
-      { "areaId": "Cave", "direction": "North" }
+      { "areaId": "Cave", "direction": "North" },
+      { "areaId": "Sanctuary", "direction": "East", "initialState": "blocked", "hidden": true }
     ],
     "deviceId": "Ancient Machine"
   },
@@ -36,5 +37,14 @@
       { "areaId": "Cave", "direction": "South" }
     ],
     "deviceId": "Orb"
+  },
+  {
+    "id": "Sanctuary",
+    "description": "A pristine chamber untouched by time. Faint light emanates from crystal walls.",
+    "connections": [],
+    "exits": [
+      { "areaId": "Ruins", "direction": "West" }
+    ],
+    "deviceId": null
   }
 ]

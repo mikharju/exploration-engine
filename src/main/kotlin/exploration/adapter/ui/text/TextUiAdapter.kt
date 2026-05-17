@@ -67,13 +67,18 @@ class TextUiAdapter(private val engine: GameEngine) {
         val exitStr = if (v.exits.filterNotNull().isEmpty()) {
             "(none)"
         } else {
-            v.exits.mapIndexed { idx, name ->
-                when (idx) {
-                    0 -> "[w] ${name ?: ""}"
-                    1 -> "[a] ${name ?: ""}"
-                    2 -> "[s] ${name ?: ""}"
-                    3 -> "[d] ${name ?: ""}"
-                    else -> "[$idx] $name"
+            v.exits.mapIndexed { idx, info ->
+                val label = when (idx) {
+                    0 -> "[w] "
+                    1 -> "[a] "
+                    2 -> "[s] "
+                    3 -> "[d] "
+                    else -> "[$idx] "
+                }
+                if (info == null) label + ".".padStart(8)
+                else {
+                    val suffix = if (info.blocked) " (B)" else ""
+                    "${label}${info.name}$suffix".let { s -> s.padEnd(if (idx < 4) 10 else 6) }
                 }
             }.joinToString(" ").trim()
         }

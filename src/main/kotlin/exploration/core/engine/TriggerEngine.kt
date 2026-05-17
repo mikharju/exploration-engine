@@ -27,7 +27,9 @@ private fun fireMatchingTriggers(
         val newTexts: List<String> = emptyList(),
         val storyMessages: List<String> = emptyList(),
         val locationUpdates: Map<ItemId, Location> = emptyMap(),
-        val lockedUpdates: Map<ItemId, Boolean> = emptyMap()
+        val lockedUpdates: Map<ItemId, Boolean> = emptyMap(),
+        val exitStateUpdates: Map<ExitId, ExitState> = emptyMap(),
+        val exitHiddenUpdates: Map<ExitId, Boolean> = emptyMap()
     )
     data class MutationAccumulator(
         val items: List<Item>,
@@ -85,6 +87,19 @@ private fun fireMatchingTriggers(
                 is Effect.LockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to true))
                 is Effect.UnlockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to false))
                 is Effect.StoryMessage -> if (effect.text.isNotBlank()) effAcc.copy(storyMessages = effAcc.storyMessages + effect.text) else effAcc
+                is Effect.SetExitBlocked -> {
+                    val id = ExitId(effect.from, effect.to)
+                    val newState = if (effect.blocked) ExitState.BLOCKED else ExitState.OPEN
+                    effAcc.copy(exitStateUpdates = effAcc.exitStateUpdates + (id to newState))
+                }
+                is Effect.HideExit -> {
+                    val id = ExitId(effect.from, effect.to)
+                    effAcc.copy(exitHiddenUpdates = effAcc.exitHiddenUpdates + (id to true))
+                }
+                is Effect.ShowExit -> {
+                    val id = ExitId(effect.from, effect.to)
+                    effAcc.copy(exitHiddenUpdates = effAcc.exitHiddenUpdates + (id to false))
+                }
             }
         }
 
@@ -108,11 +123,21 @@ private fun fireMatchingTriggers(
         if (item.id in finalAcc.effectsAcc.lockedUpdates) itemElsewhere.copy(locked = finalAcc.effectsAcc.lockedUpdates[item.id]!!) else itemElsewhere
     }
 
+    // Build merged exit states: merge new updates with existing state
+    val mergedExitStates = mutableMapOf<ExitId, ExitStateData>()
+    for (exitId in state.exitStates.keys + finalAcc.effectsAcc.exitStateUpdates.keys + finalAcc.effectsAcc.exitHiddenUpdates.keys) {
+        val current = state.exitStates[exitId] ?: ExitStateData()
+        val updatedState = finalAcc.effectsAcc.exitStateUpdates[exitId] ?: current.state
+        val updatedHidden = finalAcc.effectsAcc.exitHiddenUpdates[exitId] ?: current.hidden
+        mergedExitStates[exitId] = ExitStateData(updatedState, updatedHidden)
+    }
+
     return state.copy(
         player = finalAcc.effectsAcc.player,
         triggerTexts = if (finalAcc.effectsAcc.newTexts.isNotEmpty()) state.triggerTexts + finalAcc.effectsAcc.newTexts else state.triggerTexts,
         storyMessages = if (finalAcc.effectsAcc.storyMessages.isNotEmpty()) state.storyMessages + finalAcc.effectsAcc.storyMessages else state.storyMessages,
         triggers = allTriggers,
-        items = newItems
+        items = newItems,
+        exitStates = mergedExitStates
     )
 }

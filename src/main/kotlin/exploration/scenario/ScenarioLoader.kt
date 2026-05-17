@@ -35,6 +35,8 @@ fun assembleGame(
 
     val items = buildItems(itemEntries)
 
+    val initialExitStates = buildInitialExitStates(areaEntries, areaIds)
+
     val triggers = buildTriggers(triggerEntries)
 
     validateTriggers(triggers, areaIds, deviceMap.keys.toSet(), items.map { it.id }.toSet())
@@ -44,10 +46,31 @@ fun assembleGame(
         player = player,
         statusBounds = statusBounds,
         triggers = triggers,
-        items = items
+        items = items,
+        exitStates = initialExitStates
     )
 
     return fireAreaTriggers(state, startId)
+}
+
+private fun buildInitialExitStates(areaEntries: List<AreaEntry>, areaIds: Set<String>): Map<exploration.model.ExitId, exploration.model.ExitStateData> {
+    val result = mutableMapOf<exploration.model.ExitId, exploration.model.ExitStateData>()
+    for (entry in areaEntries) {
+        val from = AreaId(entry.id)
+        if ((entry.exits ?: emptyList()).isNotEmpty()) {
+            for (exitEntry in entry.exits!!) {
+                require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target: ${exitEntry.areaId}" }
+                val to = AreaId(exitEntry.areaId)
+                val id = exploration.model.ExitId(from, to)
+                val state = when (exitEntry.initialState?.lowercase()) {
+                    "blocked" -> exploration.model.ExitState.BLOCKED
+                    else -> exploration.model.ExitState.OPEN  // default and any unknown value
+                }
+                result[id] = exploration.model.ExitStateData(state, exitEntry.hidden)
+            }
+        }
+    }
+    return result
 }
 
 private fun buildDevices(deviceEntries: List<DeviceEntry>): Map<DeviceId, Device> = deviceEntries.associate { entry ->
@@ -139,6 +162,9 @@ private fun buildTriggers(triggerEntries: List<TriggerEntry>): List<Trigger> = t
                 "lockItem" -> Effect.LockItem(ItemId(checkNotNull(ef.itemId)))
                 "unlockItem" -> Effect.UnlockItem(ItemId(checkNotNull(ef.itemId)))
                 "storyMessage" -> Effect.StoryMessage(checkNotNull(ef.text))
+                "setExitBlocked" -> Effect.SetExitBlocked(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)), checkNotNull(ef.blocked ?: false))
+                "hideExit" -> Effect.HideExit(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)))
+                "showExit" -> Effect.ShowExit(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)))
                 else -> error("Unknown effect type: ${ef.type}")
             }
         },
@@ -163,6 +189,18 @@ private fun validateTriggers(triggers: List<Trigger>, areaIds: Set<String>, devi
                 is Effect.SetLocation -> require(e.itemId in itemIds) { "Trigger '${t.id}' references unknown item: ${e.itemId.name}" }
                 is Effect.LockItem -> require(e.itemId in itemIds) { "Trigger '${t.id}' references unknown item: ${e.itemId.name}" }
                 is Effect.UnlockItem -> require(e.itemId in itemIds) { "Trigger '${t.id}' references unknown item: ${e.itemId.name}" }
+                is Effect.SetExitBlocked -> {
+                    require(e.from.name in areaIds) { "Trigger '${t.id}' exit from area '${e.from.name}' not found" }
+                    require(e.to.name in areaIds) { "Trigger '${t.id}' exit to area '${e.to.name}' not found" }
+                }
+                is Effect.HideExit -> {
+                    require(e.from.name in areaIds) { "Trigger '${t.id}' exit from area '${e.from.name}' not found" }
+                    require(e.to.name in areaIds) { "Trigger '${t.id}' exit to area '${e.to.name}' not found" }
+                }
+                is Effect.ShowExit -> {
+                    require(e.from.name in areaIds) { "Trigger '${t.id}' exit from area '${e.from.name}' not found" }
+                    require(e.to.name in areaIds) { "Trigger '${t.id}' exit to area '${e.to.name}' not found" }
+                }
                 else -> {}
             }
         }

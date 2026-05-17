@@ -9,6 +9,7 @@ import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.TerminalScreen
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory
 import exploration.model.StatusRange
+import exploration.port.ExitInfo
 import exploration.port.GameEngine
 import exploration.port.GameRef
 import exploration.port.InputEvent
@@ -648,10 +649,15 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         topRow: Int
     ) {
         val exits = view.exits
-        val wLabel = exitLabel('w', exits.getOrNull(0))
-        val aLabel = exitLabel('a', exits.getOrNull(1))
-        val sLabel = exitLabel('s', exits.getOrNull(2))
-        val dLabel = exitLabel('d', exits.getOrNull(3))
+        val wInfo = exits.getOrNull(0)
+        val aInfo = exits.getOrNull(1)
+        val sInfo = exits.getOrNull(2)
+        val dInfo = exits.getOrNull(3)
+
+        val wLabel = exitLabel('w', wInfo)
+        val aLabel = exitLabel('a', aInfo)
+        val sLabel = exitLabel('s', sInfo)
+        val dLabel = exitLabel('d', dInfo)
 
         val gap = 2
         val contentWidth = aLabel.length + gap + sLabel.length + gap + dLabel.length
@@ -662,11 +668,11 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val colD = colS + sLabel.length + gap
         val colW = colS - wLabel.length / 2
 
-        drawSlot(g, wLabel, TerminalPosition(colW, topRow), exits.getOrNull(0) != null)
+        drawSlot(g, wLabel, TerminalPosition(colW, topRow), wInfo != null, wInfo?.blocked ?: false)
         drawInvHint(g, width, topRow)
-        drawSlot(g, aLabel, TerminalPosition(colA, topRow + 1), exits.getOrNull(1) != null)
-        drawSlot(g, sLabel, TerminalPosition(colS, topRow + 1), exits.getOrNull(2) != null)
-        drawSlot(g, dLabel, TerminalPosition(colD, topRow + 1), exits.getOrNull(3) != null)
+        drawSlot(g, aLabel, TerminalPosition(colA, topRow + 1), aInfo != null, aInfo?.blocked ?: false)
+        drawSlot(g, sLabel, TerminalPosition(colS, topRow + 1), sInfo != null, sInfo?.blocked ?: false)
+        drawSlot(g, dLabel, TerminalPosition(colD, topRow + 1), dInfo != null, dInfo?.blocked ?: false)
         drawActionHints(g, view, width, topRow + 2)
     }
 
@@ -721,11 +727,19 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         g.disableModifiers(SGR.BOLD)
     }
 
-    private fun exitLabel(key: Char, name: String?): String =
-        if (name != null) "[$key] $name" else "[$key]  ."
+    private fun exitLabel(key: Char, info: ExitInfo?): String =
+        if (info == null || info.name.isNullOrEmpty()) "[${key}]  ."
+        else {
+            val suffix = if (info.blocked) " (B)" else ""
+            "[${key}] ${info.name}$suffix"
+        }
 
-    private fun drawSlot(g: TextGraphics, label: String, pos: TerminalPosition, active: Boolean) {
-        g.foregroundColor = if (active) TextColor.ANSI.YELLOW else TextColor.ANSI.DEFAULT
+    private fun drawSlot(g: TextGraphics, label: String, pos: TerminalPosition, active: Boolean, blocked: Boolean) {
+        g.foregroundColor = when {
+            !active -> TextColor.ANSI.DEFAULT
+            blocked -> TextColor.ANSI.DEFAULT
+            else -> TextColor.ANSI.GREEN
+        }
         g.enableModifiers(SGR.BOLD)
         val keyPart = label.substringBefore(']') + "]"
         g.putString(pos.column, pos.row, keyPart)
@@ -733,7 +747,11 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         val nameStart = pos.column + keyPart.length
         val namePart = if (label.contains("] ")) label.substringAfter("] ") else ""
-        g.foregroundColor = if (active) TextColor.ANSI.WHITE else TextColor.ANSI.DEFAULT
+        g.foregroundColor = when {
+            !active -> TextColor.ANSI.DEFAULT
+            blocked -> TextColor.ANSI.DEFAULT
+            else -> TextColor.ANSI.GREEN
+        }
         g.putString(nameStart, pos.row, namePart)
 
         g.disableModifiers(SGR.BOLD)

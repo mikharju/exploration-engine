@@ -38,7 +38,9 @@ data class DeviceEntry(
 @Serializable
 data class ExitEntry(
     val areaId: String,
-    val direction: String
+    val direction: String,
+    val initialState: String? = null,
+    val hidden: Boolean = false
 )
 
 @Serializable
@@ -92,7 +94,10 @@ data class EffectEntry(
     val value: Int? = null,
     val itemId: String? = null,
     val locationType: String? = null,
-    val locationId: String? = null
+    val locationId: String? = null,
+    val fromId: String? = null,
+    val toId: String? = null,
+    val blocked: Boolean? = null
 )
 
 @Serializable

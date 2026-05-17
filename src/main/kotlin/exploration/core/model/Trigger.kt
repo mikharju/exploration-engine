@@ -41,6 +41,11 @@ sealed class Effect {
     data class LockItem(val itemId: ItemId) : Effect()
     data class UnlockItem(val itemId: ItemId) : Effect()
     data class StoryMessage(val text: String) : Effect()
+
+    // Exit effects — target area and direction
+    data class SetExitBlocked(val from: AreaId, val to: AreaId, val blocked: Boolean = true) : Effect()
+    data class HideExit(val from: AreaId, val to: AreaId) : Effect()
+    data class ShowExit(val from: AreaId, val to: AreaId) : Effect()
 }
 
 data class Trigger(

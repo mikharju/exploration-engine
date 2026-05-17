@@ -51,17 +51,21 @@ JSON array of area objects. Each exit specifies a target area and direction (Nor
 |---|---|---|---|
 | `areaId` | string | yes | Target area ID. Must exist in the scenario |
 | `direction` | string | yes | `"North"`, `"West"`, `"South"`, or `"East"` |
+| `initialState` | string | no | `"open"` (default) or `"blocked"`. Sets initial passability of this exit |
+| `hidden` | boolean | no | **Default: `false`**. If true, the exit is invisible in UI until a trigger shows it |
 
 ```json
 [
   { "id": "Forest", "description": "...", "exits": [{ "areaId": "Cave", "direction": "East" }], "deviceId": "Crystal" },
   { "id": "Cave", "description": "...", "exits": [
       { "areaId": "Forest", "direction": "West" },
-      { "areaId": "Ruins", "direction": "South" },
-      { "areaId": "Tower", "direction": "North" }
+      { "areaId": "Ruins", "direction": "South", "initialState": "blocked" },
+      { "areaId": "Tower", "direction": "North", "hidden": true }
     ], "deviceId": "Glyph Wall" }
 ]
 ```
+
+Hidden exits do not appear in the UI at all. Triggers can reveal them using `showExit` or set their passability with `setExitBlocked`. Blocked exits still show but cannot be traversed.
 
 **Legacy format:** `connections: string[]` is still supported for backward compatibility. When used, directions are auto-assigned by alphabetical order of target area names (preserving previous behavior). New scenarios should use the explicit `exits` format.
 
@@ -156,6 +160,9 @@ Each effect is an object with a `type` field plus type-specific fields.
 | `setLocation` | `itemId`, `locationType`, `locationId`? | Moves an item to a new location |
 | `lockItem` | `itemId` | Prevents the item from being dropped |
 | `unlockItem` | `itemId` | Allows the item to be dropped again |
+| `setExitBlocked` | `fromId`, `toId`, `blocked` (boolean) | Sets whether an exit is passable. Use `false` to unblock, or omit/set `true` to block |
+| `hideExit` | `fromId`, `toId` | Hides the exit so it does not appear in the UI |
+| `showExit` | `fromId`, `toId` | Reveals a previously hidden exit |
 
 **Owner type timing:**
 - `AREA`: fires when entering `ownerId` area (after move)

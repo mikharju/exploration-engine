@@ -1,6 +1,9 @@
 package exploration.state
 
 import exploration.model.AreaId
+import exploration.model.Direction
+import exploration.model.ExitId
+import exploration.model.ExitStateData
 import exploration.model.DeviceId
 import exploration.model.Item
 
@@ -23,7 +26,8 @@ data class GameState(
     val turn: Int = 0,
     val triggers: List<Trigger> = emptyList(),
     val items: List<Item> = emptyList(),
-    val storyMessages: List<String> = emptyList()
+    val storyMessages: List<String> = emptyList(),
+    val exitStates: Map<ExitId, ExitStateData> = emptyMap()
 ) {
     fun allDeviceIds(): Set<DeviceId> {
         val devices = mutableSetOf<DeviceId>()
@@ -42,4 +46,20 @@ data class GameState(
             else -> this
         }
     } else this
+
+    fun visibleExits(currentArea: AreaId): List<Direction> {
+        val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction.index }
+        return Direction.values().filter { dir ->
+            val exit = exitsByDir[dir.index] ?: return@filter false
+            val id = ExitId(currentArea, exit.targetArea)
+            val data = exitStates[id] ?: ExitStateData() // default: not hidden
+            !data.hidden
+        }
+    }
+
+    fun isExitBlocked(from: AreaId, to: AreaId): Boolean {
+        val id = ExitId(from, to)
+        val data = exitStates[id] ?: return false
+        return data.state != exploration.model.ExitState.OPEN || data.hidden
+    }
 }

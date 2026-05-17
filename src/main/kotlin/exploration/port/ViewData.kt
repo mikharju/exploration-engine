@@ -8,6 +8,11 @@ data class ItemView(
     val locked: Boolean = false
 )
 
+data class ExitInfo(
+    val name: String?,
+    val blocked: Boolean = false
+)
+
 data class ViewData(
     val outputLine: String,
     val commandText: String,
@@ -20,7 +25,7 @@ data class ViewData(
     val totalAreas: Int,
     val activatedCount: Int,
     val totalDevices: Int,
-    val exits: List<String?>,
+    val exits: List<ExitInfo?>,
     val statuses: Map<String, Int> = emptyMap(),
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val gameOver: Boolean = false,

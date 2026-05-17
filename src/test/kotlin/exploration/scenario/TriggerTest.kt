@@ -214,16 +214,87 @@ class TriggerTest {
     }
 
     @Test
-    fun `trigger loading from entries`() {
+    fun `set exit blocked effect blocks passage`() {
+        val a2 = AreaId("Cell")
+        val state = GameState(
+            world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(Exit(a2, Direction.East)), device = null), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
+            player = Player(10, 20, AreaId("Forest")),
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetExitBlocked(AreaId("Forest"), a2))))
+        )
+        val result = fireAreaTriggers(state, AreaId("Forest"))
+        assertEquals(1, result.exitStates.size)
+        val data = result.exitStates[exploration.model.ExitId(AreaId("Forest"), a2)]!!
+        assertEquals(exploration.model.ExitState.BLOCKED, data.state)
+    }
+
+    @Test
+    fun `set exit unblocked effect opens passage`() {
+        val blockedState = GameState(
+            world = World(mapOf(AreaId("A") to Area(AreaId("A"), "A.", setOf(Exit(AreaId("B"), Direction.East)), device = null), AreaId("B") to Area(AreaId("B"), "B.", setOf())), AreaId("A")),
+            player = Player(10, 20, AreaId("A")),
+            exitStates = mapOf(exploration.model.ExitId(AreaId("A"), AreaId("B")) to exploration.model.ExitStateData(exploration.model.ExitState.BLOCKED)),
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "A", emptyList(), listOf(Effect.SetExitBlocked(AreaId("A"), AreaId("B"), blocked = false))))
+        )
+        val result = fireAreaTriggers(blockedState, AreaId("A"))
+        val data = result.exitStates[exploration.model.ExitId(AreaId("A"), AreaId("B"))]!!
+        assertEquals(exploration.model.ExitState.OPEN, data.state)
+    }
+
+    @Test
+    fun `hide exit effect hides passage`() {
+        val a2 = AreaId("Cell")
+        val state = GameState(
+            world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(Exit(a2, Direction.East)), device = null), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
+            player = Player(10, 20, AreaId("Forest")),
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.HideExit(AreaId("Forest"), a2))))
+        )
+        val result = fireAreaTriggers(state, AreaId("Forest"))
+        val data = result.exitStates[exploration.model.ExitId(AreaId("Forest"), a2)]!!
+        assertTrue(data.hidden)
+    }
+
+    @Test
+    fun `show exit effect unhides passage`() {
+        val hiddenState = GameState(
+            world = World(mapOf(AreaId("A") to Area(AreaId("A"), "A.", setOf(Exit(AreaId("B"), Direction.East)), device = null), AreaId("B") to Area(AreaId("B"), "B.", setOf())), AreaId("A")),
+            player = Player(10, 20, AreaId("A")),
+            exitStates = mapOf(exploration.model.ExitId(AreaId("A"), AreaId("B")) to exploration.model.ExitStateData(exploration.model.ExitState.OPEN, hidden = true)),
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "A", emptyList(), listOf(Effect.ShowExit(AreaId("A"), AreaId("B")))))
+        )
+        val result = fireAreaTriggers(hiddenState, AreaId("A"))
+        val data = result.exitStates[exploration.model.ExitId(AreaId("A"), AreaId("B"))]!!
+        assertFalse(data.hidden)
+    }
+
+    @Test
+    fun `exit state and hidden can be combined`() {
+        val a2 = AreaId("Cell")
+        val state = GameState(
+            world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(Exit(a2, Direction.East)), device = null), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
+            player = Player(10, 20, AreaId("Forest")),
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetExitBlocked(AreaId("Forest"), a2), Effect.HideExit(AreaId("Forest"), a2))))
+        )
+        val result = fireAreaTriggers(state, AreaId("Forest"))
+        val data = result.exitStates[exploration.model.ExitId(AreaId("Forest"), a2)]!!
+        assertEquals(exploration.model.ExitState.BLOCKED, data.state)
+        assertTrue(data.hidden)
+        assertFalse(data.visible)
+    }
+
+    @Test
+    fun `trigger loading with new exit effects`() {
         val entry = TriggerEntry(
             id = "t1", ownerType = "AREA", ownerId = "Forest",
-            conditions = listOf(TriggerCondition(statusName = "mana", op = ">", threshold = 5)),
-            effects = listOf(EffectEntry(type = "changeHealth", amount = -3)),
-            singleUse = true, intervalTurns = null
+            conditions = emptyList(),
+            effects = listOf(
+                EffectEntry(type = "setExitBlocked", fromId = "Forest", toId = "Cave", blocked = true),
+                EffectEntry(type = "hideExit", fromId = "Forest", toId = "Cave")
+            ),
+            singleUse = false, intervalTurns = null
         )
-        val triggers = convertTriggerEntries(listOf(entry))
+        val triggers = convertTriggerEntriesWithExits(listOf(entry))
         assertEquals(1, triggers.size)
-        assertTrue(triggers[0].conditions.isNotEmpty())
+        assertEquals(2, triggers[0].effects.size)
     }
 }
 
@@ -234,6 +305,24 @@ private fun convertTriggerEntries(entries: List<TriggerEntry>): List<Trigger> {
             conditions = ef.conditions.map { ActivationCondition(checkType = CheckType.STATUS, statusName = it.statusName, op = when (it.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("bad") }, threshold = it.threshold ?: 0) },
             effects = ef.effects.map { map ->
                 when (map.type) { "changeHealth" -> Effect.ChangeHealth(map.amount!!); "displayText" -> Effect.DisplayText(map.text!!); else -> error("bad") }
+            }, singleUse = ef.singleUse, intervalTurns = ef.intervalTurns
+        )
+    }
+}
+
+private fun convertTriggerEntriesWithExits(entries: List<TriggerEntry>): List<Trigger> {
+    return entries.map { ef ->
+        Trigger(
+            id = ef.id, ownerType = OwnerType.valueOf(ef.ownerType), ownerId = ef.ownerId,
+            conditions = ef.conditions.map { ActivationCondition(checkType = CheckType.STATUS, statusName = it.statusName, op = when (it.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("bad") }, threshold = it.threshold ?: 0) },
+            effects = ef.effects.map { map ->
+                when (map.type) {
+                    "changeHealth" -> Effect.ChangeHealth(map.amount!!)
+                    "displayText" -> Effect.DisplayText(map.text!!)
+                    "setExitBlocked" -> Effect.SetExitBlocked(AreaId(checkNotNull(map.fromId)), AreaId(checkNotNull(map.toId)), map.blocked ?: false)
+                    "hideExit" -> Effect.HideExit(AreaId(checkNotNull(map.fromId)), AreaId(checkNotNull(map.toId)))
+                    else -> error("bad")
+                }
             }, singleUse = ef.singleUse, intervalTurns = ef.intervalTurns
         )
     }

@@ -1,11 +1,27 @@
 package exploration.model
 
-import exploration.model.Direction
+data class ExitId(
+    val from: AreaId,
+    val to: AreaId
+) {
+    override fun toString(): String = "$from → $to"
+}
+
+enum class ExitState { OPEN, BLOCKED }
+
+data class ExitStateData(
+    val state: ExitState = ExitState.OPEN,
+    val hidden: Boolean = false
+) {
+    val visible: Boolean = !hidden && state == ExitState.OPEN
+}
 
 data class Exit(
     val targetArea: AreaId,
     val direction: Direction
 ) {
+    fun exitId(from: AreaId): ExitId = ExitId(from, targetArea)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Exit) return false

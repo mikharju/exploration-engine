@@ -91,5 +91,23 @@
       {"type": "unlockItem", "itemId": "clamp trap"},
       {"type": "displayText", "text": "You use the pliers to pry open the clamp!"}
     ]
+  },
+  {
+    "id": "machineReveal",
+    "ownerType": "DEVICE",
+    "ownerId": "Ancient Machine",
+    "effects": [
+      {"type": "showExit", "fromId": "Ruins", "toId": "Sanctuary"},
+      {"type": "displayText", "text": "The machine whirrs and a hidden passage is revealed in the eastern wall!"}
+    ]
+  },
+  {
+    "id": "orbUnblock",
+    "ownerType": "DEVICE",
+    "ownerId": "Orb",
+    "effects": [
+      {"type": "setExitBlocked", "fromId": "Ruins", "toId": "Sanctuary", "blocked": false},
+      {"type": "displayText", "text": "A warm pulse emanates from the orb, unlocking the ancient mechanism."}
+    ]
   }
 ]

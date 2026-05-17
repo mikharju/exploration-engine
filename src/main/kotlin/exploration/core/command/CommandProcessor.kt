@@ -55,6 +55,13 @@ private fun runMove(state: GameState, targetName: String): CmdResult {
         return CmdResult(state.copy(commandOutput = "You can't go there directly. Connected areas: $valid"), null, null, false)
     }
 
+    if (state.isExitBlocked(state.player.currentArea, targetId)) {
+        return CmdResult(
+            state.copy(commandOutput = "That way is blocked."),
+            null, null, false
+        )
+    }
+
     return CmdResult(
         state.copy(
             player = state.player.copy(currentArea = targetId),

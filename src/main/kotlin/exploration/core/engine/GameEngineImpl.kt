@@ -36,8 +36,8 @@ class GameEngineImpl(
     }
 
     private fun resolveDirection(state: GameState, index: Int): Command? {
-        val exitName = sortedExits(state).getOrNull(index) ?: return null
-        return Command.Move(exitName)
+        val info = sortedExits(state).getOrNull(index)?.name ?: return null
+        return Command.Move(info)
     }
 
     private fun makeView(state: GameState): ViewData {
@@ -97,8 +97,19 @@ class GameEngineImpl(
             .map { ItemView(it.id.name, it.description, it.locked) }
     }
 
-    private fun sortedExits(state: GameState): List<String?> {
-        val exits = state.world.getArea(state.player.currentArea).exits.associateBy { it.direction.index }
-        return Direction.values().map { dir -> exits[dir.index]?.targetArea?.name }
+    private fun sortedExits(state: GameState): List<ExitInfo?> {
+        val visibleDirs = state.visibleExits(state.player.currentArea)
+        return Direction.values().map { dir ->
+            if (dir in visibleDirs) {
+                val exit = state.world.getArea(state.player.currentArea).exits
+                    .find { it.direction == dir }
+                if (exit != null) {
+                    ExitInfo(
+                        name = exit.targetArea.name,
+                        blocked = state.isExitBlocked(state.player.currentArea, exit.targetArea)
+                    )
+                } else null
+            } else null
+        }
     }
 }
