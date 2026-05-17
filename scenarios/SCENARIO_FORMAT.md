@@ -20,6 +20,7 @@ Entry point with player starting state and file references.
 | `statuses` | object | no | Optional status indicators. Keys are names, values have `initial`, `min`, `max` |
 | `triggersFile` | string | no | Relative to config location |
 | `itemsFile` | string | no | Relative to config location |
+| `welcomeMessage` | string | no | Displayed at game start as a story message. **Default: empty** |
 
 ```json
 {
@@ -28,6 +29,7 @@ Entry point with player starting state and file references.
   "devicesFile": "devices.json",
   "triggersFile": "triggers.json",
   "itemsFile": "items.json",
+  "welcomeMessage": "You awaken in a strange forest. An alien signal draws you deeper into the ruins ahead.",
   "statuses": {
     "corruption": { "initial": 0, "min": 0, "max": 100 }
   }
@@ -163,6 +165,7 @@ Each effect is an object with a `type` field plus type-specific fields.
 | `setExitBlocked` | `fromId`, `toId`, `blocked` (boolean) | Sets whether an exit is passable. Use `false` to unblock, or omit/set `true` to block |
 | `hideExit` | `fromId`, `toId` | Hides the exit so it does not appear in the UI |
 | `showExit` | `fromId`, `toId` | Reveals a previously hidden exit |
+| `endGame` | `text` (string) | Ends the game with a custom message. Only fires if no endGameMessage is already set. |
 
 **Owner type timing:**
 - `AREA`: fires when entering `ownerId` area (after move)
@@ -199,7 +202,22 @@ Engine throws `IllegalArgumentException` on load if violated:
 - Trigger `ownerId` must exist when `ownerType` is `AREA` or `DEVICE`
 - Effect references to `itemId` must match an item ID from `itemsFile`
 
-**Win**: visited every area + activated every device. **Lose**: health ≤ 0 (clamped to [0, maxHealth]). Statuses don't affect win/lose.
+**Win / Lose**: Game ends when a trigger fires with an `endGame` effect. Health reaching 0 does not automatically end the game — scenario authors must define triggers to handle death scenarios and other outcomes.
+
+> **Define your own game-ending triggers.** Since health reaching 0 doesn't auto-end the game, add STATUS triggers for death conditions (use `"statusName": "health"` in conditions) and AREA/DEVICE triggers for victory or story endings:
+> ```json
+> {
+>   "id": "deathAtZero",
+>   "ownerType": "STATUS",
+>   "ownerId": "health",
+>   "conditions": [{"statusName": "health", "op": "<=", "threshold": 0}],
+>   "effects": [
+>     {"type": "displayText", "text": "Your vision fades. The ruins claim another soul."},
+>     {"type": "endGame", "text": "The darkness takes you. Game Over."}
+>   ],
+>   "singleUse": true
+> }
+```
 
 ---
 

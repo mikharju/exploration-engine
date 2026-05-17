@@ -46,6 +46,8 @@ sealed class Effect {
     data class SetExitBlocked(val from: AreaId, val to: AreaId, val blocked: Boolean = true) : Effect()
     data class HideExit(val from: AreaId, val to: AreaId) : Effect()
     data class ShowExit(val from: AreaId, val to: AreaId) : Effect()
+
+    data class EndGame(val text: String) : Effect()
 }
 
 data class Trigger(

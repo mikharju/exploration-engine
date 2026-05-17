@@ -7,6 +7,8 @@ import exploration.state.GameState
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GameIntegrationTest {
@@ -23,9 +25,9 @@ class GameIntegrationTest {
     )
 
     @Test
-    fun `full winning playthrough`() {
+    fun `full winning playthrough with endGame trigger`() {
         val world = buildWorld()
-        var state = GameState(world, Player(10, 20, world.startArea))
+        var state = GameState(world, Player(10, 20, world.startArea), triggers = listOf(Trigger("sanctum", OwnerType.AREA, "Sanctuary", emptyList(), listOf(Effect.EndGame("You found the sanctum and its secrets.")))))
 
         // Forest: explore + heal
         state = processCommand(state, Command.Look)
@@ -51,18 +53,15 @@ class GameIntegrationTest {
         assertTrue(AreaId("Ruins") in state.exploredAreas)
         state = processCommand(state, Command.Activate)
 
-        // Move to Sanctuary (now visible and open)
+        // Move to Sanctuary (now visible and open) -> triggers endGame
         state = processCommand(state, Command.Move("Sanctuary"))
         state = processCommand(state, Command.Look)
-        assertTrue(AreaId("Sanctuary") in state.exploredAreas)
-
-        // Win: all areas explored + all devices activated
-        assertTrue(state.isOver)
-        assertEquals(true, state.win)
+        assertTrue(AreaId("Sanctuary") in state.exploredAreas, "Player should be in Sanctuary, explored: ${state.exploredAreas}, playerArea: ${state.player.currentArea}")
+        assertNotNull(state.endGameMessage)
     }
 
     @Test
-    fun `losing playthrough - low health damage`() {
+    fun `health reaches zero does not end the game`() {
         val world = buildWorld()
         var state = GameState(world, Player(3, 20, world.startArea))
 
@@ -71,20 +70,21 @@ class GameIntegrationTest {
         state = processCommand(state, Command.Look)
         state = processCommand(state, Command.Activate) // -5 health -> 0
 
-        assertTrue(state.isOver)
-        assertEquals(false, state.win)
+        assertTrue(state.player.health <= 0)
+        assertNull(state.endGameMessage)
     }
 
     @Test
-    fun `partial exploration does not win`() {
+    fun `partial exploration does not end the game`() {
         val world = buildWorld()
         var state = GameState(world, Player(10, 20, world.startArea))
 
         state = processCommand(state, Command.Look) // Only Forest explored
-        assertFalse(state.isOver)
+        assertTrue(AreaId("Forest") in state.exploredAreas)
+        assertNull(state.endGameMessage)
 
         state = processCommand(state, Command.Activate)
         state = processCommand(state, Command.Move("Cave"))
-        assertFalse(state.isOver)
+        assertNull(state.endGameMessage)
     }
 }

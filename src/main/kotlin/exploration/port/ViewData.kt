@@ -28,8 +28,7 @@ data class ViewData(
     val exits: List<ExitInfo?>,
     val statuses: Map<String, Int> = emptyMap(),
     val statusBounds: Map<String, StatusRange> = emptyMap(),
-    val gameOver: Boolean = false,
-    val win: Boolean? = null,
+    val endGameMessage: String? = null,
     val areaItems: List<ItemView> = emptyList(),
     val carriedItems: List<ItemView> = emptyList(),
     val equippedItems: List<ItemView> = emptyList()

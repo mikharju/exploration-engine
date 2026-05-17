@@ -29,7 +29,8 @@ private fun fireMatchingTriggers(
         val locationUpdates: Map<ItemId, Location> = emptyMap(),
         val lockedUpdates: Map<ItemId, Boolean> = emptyMap(),
         val exitStateUpdates: Map<ExitId, ExitState> = emptyMap(),
-        val exitHiddenUpdates: Map<ExitId, Boolean> = emptyMap()
+        val exitHiddenUpdates: Map<ExitId, Boolean> = emptyMap(),
+        val endGameText: String? = null
     )
     data class MutationAccumulator(
         val items: List<Item>,
@@ -47,9 +48,8 @@ private fun fireMatchingTriggers(
         val conditionsMet = trigger.conditions.all { cond ->
             when (cond.checkType) {
                 CheckType.STATUS -> {
-                    val statusValue = cond.statusName?.let {
-                        acc.effectsAcc.player.statuses.getOrElse(it) { 0 }
-                    } ?: 0
+                    val statusValue = if (cond.statusName == "health") acc.effectsAcc.player.health
+                    else cond.statusName?.let { acc.effectsAcc.player.statuses.getOrElse(it) { 0 } } ?: 0
                     when (cond.op) {
                         ComparisonOp.GT -> statusValue > cond.threshold
                         ComparisonOp.LT -> statusValue < cond.threshold
@@ -100,6 +100,7 @@ private fun fireMatchingTriggers(
                     val id = ExitId(effect.from, effect.to)
                     effAcc.copy(exitHiddenUpdates = effAcc.exitHiddenUpdates + (id to false))
                 }
+                is Effect.EndGame -> if (effAcc.endGameText == null) effAcc.copy(endGameText = effect.text) else effAcc
             }
         }
 
@@ -132,12 +133,17 @@ private fun fireMatchingTriggers(
         mergedExitStates[exitId] = ExitStateData(updatedState, updatedHidden)
     }
 
+    val finalEndGame = if (state.endGameMessage == null && finalAcc.effectsAcc.endGameText != null) {
+        finalAcc.effectsAcc.endGameText
+    } else state.endGameMessage
+
     return state.copy(
         player = finalAcc.effectsAcc.player,
         triggerTexts = if (finalAcc.effectsAcc.newTexts.isNotEmpty()) state.triggerTexts + finalAcc.effectsAcc.newTexts else state.triggerTexts,
         storyMessages = if (finalAcc.effectsAcc.storyMessages.isNotEmpty()) state.storyMessages + finalAcc.effectsAcc.storyMessages else state.storyMessages,
         triggers = allTriggers,
         items = newItems,
-        exitStates = mergedExitStates
+        exitStates = mergedExitStates,
+        endGameMessage = finalEndGame
     )
 }

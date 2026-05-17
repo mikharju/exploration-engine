@@ -20,8 +20,7 @@ data class GameState(
     val activatedDevices: Set<DeviceId> = emptySet(),
     val commandOutput: String = "",
     val triggerTexts: List<String> = emptyList(),
-    val isOver: Boolean = false,
-    val win: Boolean? = null,
+    val endGameMessage: String? = null,
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val turn: Int = 0,
     val triggers: List<Trigger> = emptyList(),
@@ -36,16 +35,6 @@ data class GameState(
         }
         return devices
     }
-
-    fun checkOutcome(): GameState = if (!isOver) {
-        val allExplored = exploredAreas == world.areas.keys
-        val allActivated = activatedDevices.containsAll(allDeviceIds())
-        when {
-            player.health <= 0 -> copy(isOver = true, win = false, commandOutput = "You collapse from exhaustion... Game Over.")
-            allExplored && allActivated -> copy(isOver = true, win = true, commandOutput = "You've explored every corner and activated every device. Victory!")
-            else -> this
-        }
-    } else this
 
     fun visibleExits(currentArea: AreaId): List<Direction> {
         val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction.index }

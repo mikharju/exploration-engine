@@ -47,7 +47,8 @@ fun assembleGame(
         statusBounds = statusBounds,
         triggers = triggers,
         items = items,
-        exitStates = initialExitStates
+        exitStates = initialExitStates,
+        storyMessages = if (config.welcomeMessage.isNotBlank()) listOf(config.welcomeMessage) else emptyList()
     )
 
     return fireAreaTriggers(state, startId)
@@ -165,6 +166,7 @@ private fun buildTriggers(triggerEntries: List<TriggerEntry>): List<Trigger> = t
                 "setExitBlocked" -> Effect.SetExitBlocked(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)), checkNotNull(ef.blocked ?: false))
                 "hideExit" -> Effect.HideExit(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)))
                 "showExit" -> Effect.ShowExit(AreaId(checkNotNull(ef.fromId)), AreaId(checkNotNull(ef.toId)))
+                "endGame" -> Effect.EndGame(checkNotNull(ef.text))
                 else -> error("Unknown effect type: ${ef.type}")
             }
         },

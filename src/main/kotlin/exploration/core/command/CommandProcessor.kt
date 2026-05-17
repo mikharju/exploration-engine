@@ -7,7 +7,7 @@ import exploration.model.*
 import exploration.state.GameState
 
 fun processCommand(state: GameState, command: Command): GameState {
-    if (state.isOver) {
+    if (state.endGameMessage != null && command !is Command.Look) {
         return state.copy(commandOutput = "The game is over. Restart to play again.")
     }
 
@@ -32,7 +32,7 @@ fun processCommand(state: GameState, command: Command): GameState {
         cmdResult.state
     }
 
-    return withTriggers.checkOutcome()
+    return withTriggers
 }
 
 private data class CmdResult(
@@ -44,11 +44,8 @@ private data class CmdResult(
 
 private fun runMove(state: GameState, targetName: String): CmdResult {
     val currentArea = state.world.getArea(state.player.currentArea)
-    val targetId = findAreaId(state, targetName)
-
-    if (targetId == null) {
-        return CmdResult(state.copy(commandOutput = "There's no place called '$targetName' here."), null, null, false)
-    }
+    val targetId = findAreaId(state, targetName) ?: return CmdResult(
+        state.copy(commandOutput = "There's no place called '$targetName' here."), null, null, false)
 
     if (targetId !in currentArea.connections) {
         val valid = currentArea.connections.joinToString(", ")
@@ -75,11 +72,8 @@ private fun runMove(state: GameState, targetName: String): CmdResult {
 
 private fun runActivate(state: GameState): CmdResult {
     val area = state.world.getArea(state.player.currentArea)
-    val device = area.device
-
-    if (device == null) {
-        return CmdResult(state.copy(commandOutput = "There's nothing here to activate."), null, null, false)
-    }
+    val device = area.device ?: return CmdResult(
+        state.copy(commandOutput = "There's nothing here to activate."), null, null, false)
 
     if (device.id in state.activatedDevices) {
         return CmdResult(state.copy(commandOutput = "${device.id} has already been activated."), null, null, false)

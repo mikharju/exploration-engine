@@ -12,7 +12,7 @@ and uses page up and page down key functionality.
 - Add minimal support for story messages to other UIs.
 - Journal action should not go to core at all. No time passing or triggers firing on it.
 
-# Doors
+# Doors (completed)
 
 - Connections have states: locked, open, closed
 - Connections can be hidden (apart from state)
@@ -24,7 +24,7 @@ and uses page up and page down key functionality.
 - Example: cave exits North Forest, East Ruins
 - Allows scenario files to determine which way each exit points and makes it easier to design maps with sensible directions and return routes
 
-# Win/lose trigger
+# Win/lose trigger (completed)
 
 - Trigger can end the game and set final message
 - Scenario file should set welcome message and default final message

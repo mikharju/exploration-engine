@@ -75,16 +75,11 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | j: stories | h: help | q/esc: quit",
             false
         )
-        addMessage(
-            history,
-            "Goal: explore all areas and activate all devices. Don't run out of health!",
-            false
-        )
 
         var currentView = engine.tick(ref, InputEvent.Look)
         render(screen, currentView, history, overlay)
 
-        while (!currentView.gameOver) {
+        while (currentView.endGameMessage == null) {
             screen.doResizeIfNecessary()
             val result = readInputKey(screen, currentView, selectionState, overlay)
             selectionState = result.selectionState
@@ -138,11 +133,12 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             if (currentView.triggerTexts[i].isNotBlank()) addMessage(history, currentView.triggerTexts[i], true)
         }
         storedStoryCount = currentView.storyMessages.size
-        addMessage(
-            history,
-            if (currentView.win == true) "=== YOU WIN! ===" else "=== GAME OVER ===",
-            false
-        )
+        if (currentView.endGameMessage != null) {
+            addMessage(history, "", false)
+            addMessage(history, currentView.endGameMessage, false)
+        } else if (currentView.outputLine.isNotBlank()) {
+            addMessage(history, currentView.outputLine, false)
+        }
         screen.doResizeIfNecessary()
         render(screen, currentView, history, overlay)
 
@@ -773,8 +769,12 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     }
 
     private fun printEndSummary(view: ViewData, history: List<HistoryEntry>) {
-        val result = if (view.win == true) "YOU WIN!" else "GAME OVER"
-        println("\n===== $result =====")
+        println()
+        if (view.endGameMessage != null) {
+            println("===== ${view.endGameMessage} =====")
+        } else {
+            println("===== Game Over =====")
+        }
         println("Area  : ${view.currentAreaName}")
         println("Health: ${view.health}/${view.maxHealth}")
         println("Explored: ${view.exploredCount}/${view.totalAreas}  |  Devices: ${view.activatedCount}/${view.totalDevices}")

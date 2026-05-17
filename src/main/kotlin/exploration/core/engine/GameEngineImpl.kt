@@ -17,7 +17,7 @@ class GameEngineImpl(
 
     override fun tick(ref: GameRef, event: InputEvent): ViewData {
         var state = store.loadGame(ref)
-        if (state.isOver) return makeGameOverView(state, "Game is over. Restart to play again.")
+        if (state.endGameMessage != null) return makeEndView(state)
 
         val command: Command? = when (event) {
             is InputEvent.Look -> Command.Look
@@ -56,8 +56,7 @@ class GameEngineImpl(
             exits = sortedExits(state),
             statuses = state.player.statuses.filterValues { it != 0 },
             statusBounds = state.statusBounds,
-            gameOver = state.isOver,
-            win = state.win,
+            endGameMessage = state.endGameMessage,
             areaItems = state.items
                 .filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == area.id }
                 .map { ItemView(it.id.name, it.description, it.locked) },
@@ -67,12 +66,12 @@ class GameEngineImpl(
         )
     }
 
-    private fun makeGameOverView(state: GameState, commandOutput: String): ViewData {
+    private fun makeEndView(state: GameState): ViewData {
         val area = state.world.getArea(state.player.currentArea)
         return ViewData(
-            commandText = commandOutput,
+            commandText = "Game over",
             triggerTexts = emptyList(),
-            outputLine = commandOutput,
+            outputLine = state.endGameMessage ?: "The game is over.",
             health = state.player.health,
             maxHealth = state.player.maxHealth,
             currentAreaName = area.id.name,
@@ -83,8 +82,7 @@ class GameEngineImpl(
             exits = sortedExits(state),
             statuses = emptyMap(),
             statusBounds = emptyMap(),
-            gameOver = true,
-            win = false,
+            endGameMessage = state.endGameMessage,
             areaItems = emptyList(),
             carriedItems = emptyList(),
             equippedItems = emptyList()

@@ -14,5 +14,6 @@
     }
   },
   "triggersFile": "triggers.json",
-  "itemsFile": "items.json"
+  "itemsFile": "items.json",
+  "welcomeMessage": "You awaken in a strange forest. An alien signal draws you deeper into the ruins ahead."
 }
