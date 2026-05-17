@@ -129,6 +129,7 @@ private fun buildTriggers(triggerEntries: List<TriggerEntry>): List<Trigger> = t
                 )
                 "lockItem" -> Effect.LockItem(ItemId(checkNotNull(ef.itemId)))
                 "unlockItem" -> Effect.UnlockItem(ItemId(checkNotNull(ef.itemId)))
+                "storyMessage" -> Effect.StoryMessage(checkNotNull(ef.text))
                 else -> error("Unknown effect type: ${ef.type}")
             }
         },

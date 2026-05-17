@@ -64,6 +64,9 @@ class KeyUiAdapter(private val engine: GameEngine) {
 
     private fun render(v: ViewData) {
         if (v.outputLine.isNotBlank()) println(v.outputLine)
+        for (msg in v.storyMessages) {
+            if (msg.isNotBlank()) println(msg)
+        }
         printStatus(v)
     }
 

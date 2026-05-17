@@ -1,9 +1,9 @@
-# Item locked status
+# Item locked status (completed)
 
 - Show in lanterna item status, which items are locked. 
 - Change color and append (Locked) suffix.
 
-# Story message
+# Story message (completed)
 
 - Add new trigger effect called story message. It may be very long, several paragraphs.
 - Add a temporary view to lanterna UI that displays this long message with a scroll bar
@@ -17,6 +17,12 @@ and uses page up and page down key functionality.
 - Connections have states: locked, open, closed
 - Connections can be hidden (apart from state)
 - Triggers may change state or hide/show connections
+
+# Consistent exits tied to directions
+
+- Give area connections direction property
+- Example: cave exits North Forest, East Ruins
+- Allows scenario files to determine which way each exit points and makes it easier to design maps with sensible directions and return routes
 
 # Win/lose trigger
 

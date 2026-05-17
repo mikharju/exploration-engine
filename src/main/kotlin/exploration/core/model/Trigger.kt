@@ -40,6 +40,7 @@ sealed class Effect {
 
     data class LockItem(val itemId: ItemId) : Effect()
     data class UnlockItem(val itemId: ItemId) : Effect()
+    data class StoryMessage(val text: String) : Effect()
 }
 
 data class Trigger(

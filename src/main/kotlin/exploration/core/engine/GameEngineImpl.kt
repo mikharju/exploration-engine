@@ -59,9 +59,10 @@ class GameEngineImpl(
             win = state.win,
             areaItems = state.items
                 .filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == area.id }
-                .map { ItemView(it.id.name, it.description) },
+                .map { ItemView(it.id.name, it.description, it.locked) },
             carriedItems = buildItemViews(state, ItemLocationType.CARRIED),
-            equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED)
+            equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED),
+            storyMessages = state.storyMessages
         )
     }
 
@@ -92,7 +93,7 @@ class GameEngineImpl(
     private fun buildItemViews(state: GameState, type: ItemLocationType): List<ItemView> {
         return state.items
             .filter { it.location.type == type }
-            .map { ItemView(it.id.name, it.description) }
+            .map { ItemView(it.id.name, it.description, it.locked) }
     }
 
     private fun sortedExits(state: GameState): List<String> =

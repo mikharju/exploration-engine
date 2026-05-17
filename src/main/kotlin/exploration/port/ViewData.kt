@@ -4,13 +4,15 @@ import exploration.model.StatusRange
 
 data class ItemView(
     val name: String,
-    val description: String
+    val description: String,
+    val locked: Boolean = false
 )
 
 data class ViewData(
     val outputLine: String,
     val commandText: String,
     val triggerTexts: List<String>,
+    val storyMessages: List<String> = emptyList(),
     val health: Int,
     val maxHealth: Int,
     val currentAreaName: String,

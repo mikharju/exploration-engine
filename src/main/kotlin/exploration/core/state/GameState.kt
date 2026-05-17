@@ -22,7 +22,8 @@ data class GameState(
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val turn: Int = 0,
     val triggers: List<Trigger> = emptyList(),
-    val items: List<Item> = emptyList()
+    val items: List<Item> = emptyList(),
+    val storyMessages: List<String> = emptyList()
 ) {
     fun allDeviceIds(): Set<DeviceId> {
         val devices = mutableSetOf<DeviceId>()

@@ -16,6 +16,24 @@
     ]
   },
   {
+    "id": "ruinsStory",
+    "ownerType": "AREA",
+    "ownerId": "Ruins",
+    "effects": [
+      {"type": "storyMessage", "text": "The ruins are a tangle of moss-covered stone and broken archways. At the center stands an ancient machine, its brass gears half-buried in earth. It hums faintly with residual power — old technology that once served some forgotten purpose. \n\n\nYou hear a clicking sound coming from above, but can't spot an obvious source of it. The tall ruins may hide many dangers and treasures. There is so much clutter. Much of it broken stone and wild vegetation, but some pieces of technology. You see no movement, lights or other signs of life, but some pieces do not look broken. This could be the motherload. Could be dangerous too. Ah well, nothing ventured... Just roll up your sleeves and start investigating. But be careful while you do.The ruins are a tangle of moss-covered stone and broken archways. At the center stands an ancient machine, its brass gears half-buried in earth. It hums faintly with residual power — old technology that once served some forgotten purpose. You hear a clicking sound coming from above, but can't spot an obvious source of it. The tall ruins may hide many dangers and treasures. There is so much clutter. Much of it broken stone and wild vegetation, but some pieces of technology. You see no movement, lights or other signs of life, but some pieces do not look broken. This could be the motherload. Could be dangerous too. Ah well, nothing ventured... Just roll up your sleeves and start investigating. But be careful while you do.The ruins are a tangle of moss-covered stone and broken archways. At the center stands an ancient machine, its brass gears half-buried in earth. It hums faintly with residual power — old technology that once served some forgotten purpose. You hear a clicking sound coming from above, but can't spot an obvious source of it. The tall ruins may hide many dangers and treasures. There is so much clutter. Much of it broken stone and wild vegetation, but some pieces of technology. You see no movement, lights or other signs of life, but some pieces do not look broken. This could be the motherload. Could be dangerous too. Ah well, nothing ventured... Just roll up your sleeves and start investigating. But be careful while you do.The ruins are a tangle of moss-covered stone and broken archways. At the center stands an ancient machine, its brass gears half-buried in earth. It hums faintly with residual power — old technology that once served some forgotten purpose. You hear a clicking sound coming from above, but can't spot an obvious source of it. The tall ruins may hide many dangers and treasures. There is so much clutter. Much of it broken stone and wild vegetation, but some pieces of technology. You see no movement, lights or other signs of life, but some pieces do not look broken. This could be the motherload. Could be dangerous too. Ah well, nothing ventured... Just roll up your sleeves and start investigating. But be careful while you do."}
+    ],
+    "singleUse": true
+  },
+  {
+    "id": "towerStory",
+    "ownerType": "AREA",
+    "ownerId": "Tower",
+    "effects": [
+      {"type": "storyMessage", "text": "The tower rises in spiraling stone, its walls thick with age and weathering. A spiral staircase winds upward into dim light filtering through narrow slits in the masonry."}
+    ],
+    "singleUse": true
+  },
+  {
     "id": "corruptionDamage",
     "ownerType": "STATUS",
     "ownerId": "corruption",

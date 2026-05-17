@@ -25,6 +25,7 @@ private fun fireMatchingTriggers(
     data class EffectsAccumulator(
         val player: Player = state.player,
         val newTexts: List<String> = emptyList(),
+        val storyMessages: List<String> = emptyList(),
         val locationUpdates: Map<ItemId, Location> = emptyMap(),
         val lockedUpdates: Map<ItemId, Boolean> = emptyMap()
     )
@@ -83,6 +84,7 @@ private fun fireMatchingTriggers(
                     else effAcc
                 is Effect.LockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to true))
                 is Effect.UnlockItem ->  effAcc.copy(lockedUpdates = effAcc.lockedUpdates + (effect.itemId to false))
+                is Effect.StoryMessage -> if (effect.text.isNotBlank()) effAcc.copy(storyMessages = effAcc.storyMessages + effect.text) else effAcc
             }
         }
 
@@ -109,6 +111,7 @@ private fun fireMatchingTriggers(
     return state.copy(
         player = finalAcc.effectsAcc.player,
         triggerTexts = if (finalAcc.effectsAcc.newTexts.isNotEmpty()) state.triggerTexts + finalAcc.effectsAcc.newTexts else state.triggerTexts,
+        storyMessages = if (finalAcc.effectsAcc.storyMessages.isNotEmpty()) state.storyMessages + finalAcc.effectsAcc.storyMessages else state.storyMessages,
         triggers = allTriggers,
         items = newItems
     )
