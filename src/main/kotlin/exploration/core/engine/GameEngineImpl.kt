@@ -2,6 +2,7 @@ package exploration.core.engine
 
 import exploration.command.Command
 import exploration.command.processCommand
+import exploration.model.Direction
 import exploration.model.ItemLocationType
 import exploration.model.LocationTarget
 import exploration.port.*
@@ -96,8 +97,8 @@ class GameEngineImpl(
             .map { ItemView(it.id.name, it.description, it.locked) }
     }
 
-    private fun sortedExits(state: GameState): List<String> =
-        state.world.getArea(state.player.currentArea).connections
-            .map { it.name }
-            .sortedBy { it.lowercase() }
+    private fun sortedExits(state: GameState): List<String?> {
+        val exits = state.world.getArea(state.player.currentArea).exits.associateBy { it.direction.index }
+        return Direction.values().map { dir -> exits[dir.index]?.targetArea?.name }
+    }
 }

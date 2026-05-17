@@ -2,25 +2,39 @@
   {
     "id": "Forest",
     "description": "A dense forest with tall pines and dappled sunlight.",
-    "connections": ["Cave"],
+    "connections": [],
+    "exits": [
+      { "areaId": "Cave", "direction": "East" }
+    ],
     "deviceId": "Crystal"
   },
   {
     "id": "Cave",
     "description": "A dim cavern with stalactites and a cool breeze.",
-    "connections": ["Forest", "Ruins", "Tower"],
+    "connections": [],
+    "exits": [
+      { "areaId": "Forest", "direction": "West" },
+      { "areaId": "Tower", "direction": "North" },
+      { "areaId": "Ruins", "direction": "South" }
+    ],
     "deviceId": "Glyph Wall"
   },
   {
     "id": "Ruins",
     "description": "Crumbled stone ruins overgrown with vines.",
-    "connections": ["Cave"],
+    "connections": [],
+    "exits": [
+      { "areaId": "Cave", "direction": "North" }
+    ],
     "deviceId": "Ancient Machine"
   },
   {
     "id": "Tower",
     "description": "A tall stone tower interior with a spiral staircase.",
-    "connections": ["Cave"],
+    "connections": [],
+    "exits": [
+      { "areaId": "Cave", "direction": "South" }
+    ],
     "deviceId": "Orb"
   }
 ]

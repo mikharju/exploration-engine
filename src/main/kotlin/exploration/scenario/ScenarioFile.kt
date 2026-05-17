@@ -36,10 +36,17 @@ data class DeviceEntry(
 )
 
 @Serializable
+data class ExitEntry(
+    val areaId: String,
+    val direction: String
+)
+
+@Serializable
 data class AreaEntry(
     val id: String,
     val description: String,
-    val connections: List<String>,
+    val connections: List<String>? = null,
+    val exits: List<ExitEntry>? = null,
     val deviceId: String? = null
 )
 

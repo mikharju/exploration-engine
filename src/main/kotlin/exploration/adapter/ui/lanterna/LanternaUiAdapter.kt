@@ -662,11 +662,11 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val colD = colS + sLabel.length + gap
         val colW = colS - wLabel.length / 2
 
-        drawSlot(g, wLabel, TerminalPosition(colW, topRow), exits.size > 0)
+        drawSlot(g, wLabel, TerminalPosition(colW, topRow), exits.getOrNull(0) != null)
         drawInvHint(g, width, topRow)
-        drawSlot(g, aLabel, TerminalPosition(colA, topRow + 1), exits.size > 1)
-        drawSlot(g, sLabel, TerminalPosition(colS, topRow + 1), exits.size > 2)
-        drawSlot(g, dLabel, TerminalPosition(colD, topRow + 1), exits.size > 3)
+        drawSlot(g, aLabel, TerminalPosition(colA, topRow + 1), exits.getOrNull(1) != null)
+        drawSlot(g, sLabel, TerminalPosition(colS, topRow + 1), exits.getOrNull(2) != null)
+        drawSlot(g, dLabel, TerminalPosition(colD, topRow + 1), exits.getOrNull(3) != null)
         drawActionHints(g, view, width, topRow + 2)
     }
 

@@ -65,15 +65,24 @@ private fun buildAreas(areaEntries: List<AreaEntry>, deviceMap: Map<DeviceId, De
         throw IllegalArgumentException("Area '${entry.id}' references unknown device: ${entry.deviceId}")
     }
 
-    val connections = entry.connections.mapNotNull { connName ->
-        require(connName in areaIds) { "Area '${entry.id}' connects to unknown area: $connName" }
-        AreaId(connName)
-    }.toSet()
+    val exits: Set<Exit> = if ((entry.exits ?: emptyList()).isNotEmpty()) {
+        (entry.exits ?: emptyList()).mapNotNull { exitEntry ->
+            require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target area: ${exitEntry.areaId}" }
+            val dir = Direction.parse(exitEntry.direction)
+                ?: error("Area '${entry.id}' has invalid direction '${exitEntry.direction}'. Must be one of North, West, South, East")
+            Exit(AreaId(exitEntry.areaId), dir)
+        }.toSet()
+    } else {
+        (entry.connections ?: emptyList()).mapNotNull { connName ->
+            require(connName in areaIds) { "Area '${entry.id}' connects to unknown area: $connName" }
+            AreaId(connName)
+        }.sortedBy { it.name }.mapIndexed { idx, areaId -> Exit(areaId, Direction.fromIndex(idx) ?: Direction.North) }.toSet()
+    }
 
     AreaId(entry.id) to Area(
         id = AreaId(entry.id),
         description = entry.description,
-        connections = connections,
+        exits = exits,
         device = entry.deviceId?.let { deviceMap[DeviceId(it)]!! }
     )
 }

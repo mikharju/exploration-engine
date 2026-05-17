@@ -2,13 +2,19 @@
   {
     "id": "A",
     "description": "Room A.",
-    "connections": ["B"],
+    "connections": [],
+    "exits": [
+      { "areaId": "B", "direction": "East" }
+    ],
     "deviceId": "device1"
   },
   {
     "id": "B",
     "description": "Room B.",
-    "connections": ["A"],
+    "connections": [],
+    "exits": [
+      { "areaId": "A", "direction": "West" }
+    ],
     "deviceId": "device2"
   }
 ]

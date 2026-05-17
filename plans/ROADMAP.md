@@ -18,7 +18,7 @@ and uses page up and page down key functionality.
 - Connections can be hidden (apart from state)
 - Triggers may change state or hide/show connections
 
-# Consistent exits tied to directions
+# Consistent exits tied to directions (completed)
 
 - Give area connections direction property
 - Example: cave exits North Forest, East Ruins

@@ -64,18 +64,18 @@ class TextUiAdapter(private val engine: GameEngine) {
         val statusStr = if (v.statuses.isNotEmpty()) {
             " | ${v.statuses.entries.joinToString(" | ") { (k, n) -> "${k.replaceFirstChar { c -> c.uppercaseChar() }}: $n" }}"
         } else ""
-        val exitStr = if (v.exits.isEmpty()) {
+        val exitStr = if (v.exits.filterNotNull().isEmpty()) {
             "(none)"
         } else {
             v.exits.mapIndexed { idx, name ->
                 when (idx) {
-                    0 -> "[w] $name"
-                    1 -> "[a] $name"
-                    2 -> "[s] $name"
-                    3 -> "[d] $name"
+                    0 -> "[w] ${name ?: ""}"
+                    1 -> "[a] ${name ?: ""}"
+                    2 -> "[s] ${name ?: ""}"
+                    3 -> "[d] ${name ?: ""}"
                     else -> "[$idx] $name"
                 }
-            }.joinToString(" ")
+            }.joinToString(" ").trim()
         }
 
         println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exitStr]$statusStr")

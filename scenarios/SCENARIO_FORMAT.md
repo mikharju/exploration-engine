@@ -36,21 +36,34 @@ Entry point with player starting state and file references.
 
 ## Areas (`areas.json`)
 
-JSON array of area objects. Connections are bidirectional — if A lists B, B must list A.
+JSON array of area objects. Each exit specifies a target area and direction (North, West, South, East). Directions are not auto-verified as bidirectional — each side defines its own exits explicitly.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | Unique. Case-sensitive match, case-insensitive input at runtime |
 | `description` | string | yes | Shown on entry/look |
-| `connections` | string[] | yes | IDs of reachable areas. All must exist. Empty = dead-end |
+| `exits` | exit[] | no | List of exits with direction. Omit or empty = dead-end |
 | `deviceId` | string \| null | no | Must match a device `id`. One per area max |
+
+**Exit object:**
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `areaId` | string | yes | Target area ID. Must exist in the scenario |
+| `direction` | string | yes | `"North"`, `"West"`, `"South"`, or `"East"` |
 
 ```json
 [
-  { "id": "Forest", "description": "...", "connections": ["Cave"], "deviceId": "Crystal" },
-  { "id": "Cave", "description": "...", "connections": ["Forest", "Ruins", "Tower"], "deviceId": "Glyph Wall" }
+  { "id": "Forest", "description": "...", "exits": [{ "areaId": "Cave", "direction": "East" }], "deviceId": "Crystal" },
+  { "id": "Cave", "description": "...", "exits": [
+      { "areaId": "Forest", "direction": "West" },
+      { "areaId": "Ruins", "direction": "South" },
+      { "areaId": "Tower", "direction": "North" }
+    ], "deviceId": "Glyph Wall" }
 ]
 ```
+
+**Legacy format:** `connections: string[]` is still supported for backward compatibility. When used, directions are auto-assigned by alphabetical order of target area names (preserving previous behavior). New scenarios should use the explicit `exits` format.
 
 ## Devices (`devices.json`)
 
@@ -171,8 +184,8 @@ Each effect is an object with a `type` field plus type-specific fields.
 ## Validation & Rules
 
 Engine throws `IllegalArgumentException` on load if violated:
-- `startArea`, all `connections`, and all `deviceId` references must exist
-- `health ≥ 0`, `maxHealth > 0`, `health ≤ maxHealth`
+- `startArea`, all `exits` (or legacy `connections`), and all `deviceId` references must exist
+- Exit direction strings must be one of: North, West, South, East
 - File paths resolve relative to the config file directory (subdirs supported)
 - Status `min < max` for each defined status; `initial` must be within `[min, max]`
 - Keys in device `statusEffects` must match a declared status name
@@ -193,7 +206,7 @@ Engine throws `IllegalArgumentException` on load if violated:
 5. Test at health=1 to verify not accidentally unwinnable
 
 ### Common Mistakes
-- Forgetting bidirectional connections (A→B requires B→A)
+- Forgetting to define return exits (A→B requires B→A if you want to go back)
 - Mismatched `deviceId` strings (case-sensitive)
 - Unreachable areas making the scenario unwinnable
 - Referencing a device that doesn't exist in devicesFile

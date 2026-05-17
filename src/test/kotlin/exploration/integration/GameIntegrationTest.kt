@@ -13,10 +13,10 @@ class GameIntegrationTest {
 
     private fun buildWorld(): World = World(
         areas = mapOf(
-            AreaId("Forest") to Area(AreaId("Forest"), "A dense forest.", setOf(AreaId("Cave")), Device(DeviceId("Crystal"), "glowing crystal", "+10 health", 10)),
-            AreaId("Cave") to Area(AreaId("Cave"), "A dim cavern.", setOf(AreaId("Forest"), AreaId("Ruins"), AreaId("Tower")), Device(DeviceId("Glyph Wall"), "glyphs", "message", 0)),
-            AreaId("Ruins") to Area(AreaId("Ruins"), "Crumbled ruins.", setOf(AreaId("Cave")), Device(DeviceId("Machine"), "machine", "-5 health", -5)),
-            AreaId("Tower") to Area(AreaId("Tower"), "A tall tower.", setOf(AreaId("Cave")), Device(DeviceId("Orb"), "orb", "+3 health", 3))
+            AreaId("Forest") to Area(AreaId("Forest"), "A dense forest.", setOf(Exit(AreaId("Cave"), Direction.East)), Device(DeviceId("Crystal"), "glowing crystal", "+10 health", 10)),
+            AreaId("Cave") to Area(AreaId("Cave"), "A dim cavern.", setOf(Exit(AreaId("Forest"), Direction.West), Exit(AreaId("Ruins"), Direction.South), Exit(AreaId("Tower"), Direction.North)), Device(DeviceId("Glyph Wall"), "glyphs", "message", 0)),
+            AreaId("Ruins") to Area(AreaId("Ruins"), "Crumbled ruins.", setOf(Exit(AreaId("Cave"), Direction.North)), Device(DeviceId("Machine"), "machine", "-5 health", -5)),
+            AreaId("Tower") to Area(AreaId("Tower"), "A tall tower.", setOf(Exit(AreaId("Cave"), Direction.South)), Device(DeviceId("Orb"), "orb", "+3 health", 3))
         ),
         startArea = AreaId("Forest")
     )

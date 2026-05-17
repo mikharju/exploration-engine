@@ -23,9 +23,9 @@ class CommandProcessorTest {
 
         world = World(
             areas = mapOf(
-                aId to Area(aId, "Room A", setOf(bId), deviceHeal),
-                bId to Area(bId, "Room B", setOf(aId, cId), deviceNeutral),
-                cId to Area(cId, "Room C", setOf(bId), deviceHurt)
+                aId to Area(aId, "Room A", setOf(Exit(bId, Direction.East)), deviceHeal),
+                bId to Area(bId, "Room B", setOf(Exit(aId, Direction.West), Exit(cId, Direction.South)), deviceNeutral),
+                cId to Area(cId, "Room C", setOf(Exit(bId, Direction.North)), deviceHurt)
             ),
             startArea = aId
         )
@@ -103,7 +103,7 @@ class CommandProcessorTest {
     @Test
     fun `activate in room with no device shows message`() {
         val emptyWorld = World(
-            areas = mapOf(AreaId("X") to Area(AreaId("X"), "Empty.", setOf())),
+            areas = mapOf(AreaId("X") to Area(AreaId("X"), "Empty.")),
             startArea = AreaId("X")
         )
         val state = GameState(world = emptyWorld, player = Player(5, 10, AreaId("X")))

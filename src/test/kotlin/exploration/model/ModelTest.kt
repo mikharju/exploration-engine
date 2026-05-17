@@ -33,7 +33,7 @@ class ModelTest {
     fun `world rejects missing start area`() {
         assertFailsWith<IllegalArgumentException> {
             World(
-                areas = mapOf(AreaId("A") to Area(AreaId("A"), "A", setOf())),
+                areas = mapOf(AreaId("A") to Area(AreaId("A"), "A")),
                 startArea = AreaId("Missing")
             )
         }

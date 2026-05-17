@@ -1,5 +1,7 @@
 package exploration.port
 
+import exploration.model.Direction
+
 sealed class InputEvent {
     object Look : InputEvent()
     object Activate : InputEvent()
@@ -10,14 +12,5 @@ sealed class InputEvent {
     data class UnequipItem(val itemName: String) : InputEvent()
     object Inventory : InputEvent()
 
-    enum class Direction(val index: Int, val key: String, val displayName: String) {
-        North(0, "w", "North"),
-        West(1, "a", "West"),
-        South(2, "s", "South"),
-        East(3, "d", "East");
-
-        companion object {
-            fun fromIndex(index: Int): Direction? = values().getOrNull(index)
-        }
-    }
+    typealias Direction = exploration.model.Direction
 }

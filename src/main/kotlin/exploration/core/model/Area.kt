@@ -1,5 +1,20 @@
 package exploration.model
 
+import exploration.model.Direction
+
+data class Exit(
+    val targetArea: AreaId,
+    val direction: Direction
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Exit) return false
+        return targetArea == other.targetArea && direction == other.direction
+    }
+
+    override fun hashCode(): Int = targetArea.hashCode() * 31 + direction.hashCode()
+}
+
 data class AreaId(val name: String) {
     override fun toString(): String = name
 }
@@ -7,6 +22,10 @@ data class AreaId(val name: String) {
 data class Area(
     val id: AreaId,
     val description: String,
-    val connections: Set<AreaId>,
+    val exits: Set<Exit> = emptySet(),
     val device: Device? = null
-)
+) {
+    val connections: Set<AreaId> = exits.map { it.targetArea }.toSet()
+
+
+}

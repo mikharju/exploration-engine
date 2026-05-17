@@ -97,7 +97,7 @@ class TriggerTest {
     fun `set location moves item to area`() {
         val a2 = AreaId("Cell")
         val state = GameState(
-            world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(a2)), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
+            world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(Exit(a2, Direction.East)), device = null), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
             player = Player(10, 20, AreaId("Forest")),
             items = listOf(exploration.model.Item(ItemId("Map"), "A map.")),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetLocation(ItemId("Map"), Effect.TargetRef.InArea(a2)))))
@@ -243,7 +243,7 @@ private fun baseState(statuses: Map<String, Int> = emptyMap()): GameState {
     val aId = AreaId("Forest")
     val bId = AreaId("Cave")
     return GameState(
-        world = World(mapOf(aId to Area(aId, "Forest.", setOf(bId)), bId to Area(bId, "Cave.", setOf(aId))), aId),
+        world = World(mapOf(aId to Area(aId, "Forest.", setOf(Exit(bId, Direction.East)), device = null), bId to Area(bId, "Cave.", setOf(Exit(aId, Direction.West)), device = null)), aId),
         player = Player(10, 20, aId, statuses),
         statusBounds = emptyMap()
     )

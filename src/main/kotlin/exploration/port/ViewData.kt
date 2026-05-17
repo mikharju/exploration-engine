@@ -20,7 +20,7 @@ data class ViewData(
     val totalAreas: Int,
     val activatedCount: Int,
     val totalDevices: Int,
-    val exits: List<String>,
+    val exits: List<String?>,
     val statuses: Map<String, Int> = emptyMap(),
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val gameOver: Boolean = false,

@@ -80,11 +80,11 @@ class KeyUiAdapter(private val engine: GameEngine) {
         printWasdLayout(v.exits)
     }
 
-    private fun printWasdLayout(exits: List<String>) {
-        val w = exits.getOrElse(0) { "" }
-        val a = exits.getOrElse(1) { "" }
-        val s = exits.getOrElse(2) { "" }
-        val d = exits.getOrElse(3) { "" }
+    private fun printWasdLayout(exits: List<String?>) {
+        val w = exits.getOrNull(0) ?: ""
+        val a = exits.getOrNull(1) ?: ""
+        val s = exits.getOrNull(2) ?: ""
+        val d = exits.getOrNull(3) ?: ""
 
         println()
         val padW = if (w.isEmpty()) "  [w]       " else "  [w] $w    "
