@@ -2,14 +2,15 @@ package exploration.adapter.ui.lanterna
 
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.input.KeyType
-import exploration.model.StatusRange
-import exploration.port.ExitInfo
 import exploration.port.InputEvent
 import exploration.port.ItemView
 import exploration.port.ViewData
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class InputMapperTest {
 
@@ -159,7 +160,7 @@ class InputMapperTest {
         val result = mapper.mapKey(keyOf('g'), view, null, Overlay.None)
         assertEquals(KeyAction.WaitSelection, result.action)
         assertNotNull(result.selectionState)
-        assertEquals(SelectionTarget.TAKE, result.selectionState!!.target)
+        assertEquals(SelectionTarget.TAKE, result.selectionState.target)
     }
 
     @Test
@@ -168,7 +169,7 @@ class InputMapperTest {
         val result = mapper.mapKey(keyOf('p'), view, null, Overlay.None)
         assertEquals(KeyAction.WaitSelection, result.action)
         assertNotNull(result.selectionState)
-        assertEquals(SelectionTarget.DROP, result.selectionState!!.target)
+        assertEquals(SelectionTarget.DROP, result.selectionState.target)
     }
 
     @Test
@@ -177,7 +178,7 @@ class InputMapperTest {
         val result = mapper.mapKey(keyOf('e'), view, null, Overlay.None)
         assertEquals(KeyAction.WaitSelection, result.action)
         assertNotNull(result.selectionState)
-        assertEquals(SelectionTarget.EQUIP, result.selectionState!!.target)
+        assertEquals(SelectionTarget.EQUIP, result.selectionState.target)
     }
 
     @Test
@@ -186,7 +187,7 @@ class InputMapperTest {
         val result = mapper.mapKey(keyOf('r'), view, null, Overlay.None)
         assertEquals(KeyAction.WaitSelection, result.action)
         assertNotNull(result.selectionState)
-        assertEquals(SelectionTarget.UNEQUIP, result.selectionState!!.target)
+        assertEquals(SelectionTarget.UNEQUIP, result.selectionState.target)
     }
 
     @Test
@@ -218,7 +219,7 @@ class InputMapperTest {
         val view = viewData(storyMessages = listOf("First", "", "Last"))
         val result = mapper.mapKey(keyOf('j'), view, null, Overlay.None)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        val viewer = result.overlay as Overlay.MessageViewer
+        val viewer: Overlay.MessageViewer = result.overlay
         assertEquals(2, viewer.messages.size)
     }
 
@@ -297,7 +298,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 0, maxHeight = 3)
         val result = mapper.mapKey(keyOf(KeyType.ArrowDown), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(1, (result.overlay as Overlay.MessageViewer).scrollOffset)
+        assertEquals(1, result.overlay.scrollOffset)
     }
 
     @Test
@@ -306,7 +307,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 2, maxHeight = 3)
         val result = mapper.mapKey(keyOf(KeyType.ArrowUp), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(1, (result.overlay as Overlay.MessageViewer).scrollOffset)
+        assertEquals(1, result.overlay.scrollOffset)
     }
 
     @Test
@@ -339,7 +340,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 0, focusedIndex = 2)
         val result = mapper.mapKey(keyOf(KeyType.ArrowLeft), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(1, (result.overlay as Overlay.MessageViewer).focusedIndex)
+        assertEquals(1, result.overlay.focusedIndex)
     }
 
     @Test
@@ -348,7 +349,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 0, focusedIndex = 0)
         val result = mapper.mapKey(keyOf(KeyType.ArrowRight), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(1, (result.overlay as Overlay.MessageViewer).focusedIndex)
+        assertEquals(1, result.overlay.focusedIndex)
     }
 
     @Test
@@ -357,7 +358,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 0, focusedIndex = 0)
         val result = mapper.mapKey(keyOf(KeyType.ArrowLeft), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(0, (result.overlay as Overlay.MessageViewer).focusedIndex)
+        assertEquals(0, result.overlay.focusedIndex)
     }
 
     @Test
@@ -366,7 +367,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 0, focusedIndex = 1)
         val result = mapper.mapKey(keyOf(KeyType.ArrowRight), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(1, (result.overlay as Overlay.MessageViewer).focusedIndex)
+        assertEquals(1, result.overlay.focusedIndex)
     }
 
     // Overlay closing on normal key press
@@ -419,7 +420,7 @@ class InputMapperTest {
         val ov = Overlay.MessageViewer(msgs, scrollOffset = 5, maxHeight = 3)
         val result = mapper.mapKey(keyOf(KeyType.ArrowDown), viewData(), null, ov, 80, 40)
         assertTrue(result.overlay is Overlay.MessageViewer)
-        assertEquals(6, (result.overlay as Overlay.MessageViewer).scrollOffset)
+        assertEquals(6, result.overlay.scrollOffset)
     }
 
     // Selection state cleared after selection
