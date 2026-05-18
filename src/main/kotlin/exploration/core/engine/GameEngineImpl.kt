@@ -100,7 +100,7 @@ class GameEngineImpl(
         val area = state.world.getArea(state.player.currentArea)
         val visibleDirs = state.visibleExits(state.player.currentArea)
         return buildMap {
-            for (dir in Direction.values()) {
+            for (dir in Direction.entries) {
                 if (dir in visibleDirs) {
                     val exit = area.exits.find { it.direction == dir }
                     this[dir] = exit?.let { ExitInfo(it.targetArea.name, state.isExitBlocked(state.player.currentArea, it.targetArea)) }

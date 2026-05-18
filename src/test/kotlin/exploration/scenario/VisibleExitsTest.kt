@@ -28,7 +28,7 @@ class VisibleExitsTest {
         )
 
         // All open and visible - directions with exits that aren't hidden
-        var state = GameState(world, Player(10, 20, forest))
+        val state = GameState(world, Player(10, 20, forest))
         assertEquals(setOf(Direction.North, Direction.East), state.visibleExits(forest))
 
         // Block east exit (Forest -> Cave) - still visible but blocked for movement

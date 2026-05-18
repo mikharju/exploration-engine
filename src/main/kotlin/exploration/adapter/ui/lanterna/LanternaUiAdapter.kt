@@ -4,20 +4,14 @@ import com.googlecode.lanterna.SGR
 import com.googlecode.lanterna.TerminalPosition
 import com.googlecode.lanterna.TextColor
 import com.googlecode.lanterna.graphics.TextGraphics
-import com.googlecode.lanterna.input.KeyType
 import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.TerminalScreen
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory
-import exploration.port.ExitInfo
-import exploration.port.GameEngine
-import exploration.port.GameRef
-import exploration.port.InputEvent
-import exploration.port.ItemView
-import exploration.port.ViewData
+import exploration.port.*
 
-public data class HistoryEntry(val text: String, val isTrigger: Boolean)
+data class HistoryEntry(val text: String, val isTrigger: Boolean)
 
-public sealed interface Overlay {
+sealed interface Overlay {
     object None : Overlay
     data class MessageViewer(
         val messages: List<String>,
@@ -34,8 +28,8 @@ public sealed interface Overlay {
     }
 }
 
-public enum class SelectionTarget { TAKE, DROP, EQUIP, UNEQUIP }
-public data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
+enum class SelectionTarget { TAKE, DROP, EQUIP, UNEQUIP }
+data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
 
 class LanternaUiAdapter(private val engine: GameEngine) {
     private val keyMapper = LanternaKeyMapper()
@@ -432,7 +426,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             row++
         }
 
-        for ((i, item) in v.equippedItems.withIndex()) {
+        for ((_, item) in v.equippedItems.withIndex()) {
             if (row >= top.row + maxRows) break
             val label = "@ ${item.name}" + if (item.locked) " (Locked)" else ""
             g.foregroundColor = if (item.locked) TextColor.ANSI.RED else TextColor.ANSI.MAGENTA
@@ -481,7 +475,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     }
 
     private fun drawInvHint(g: TextGraphics, width: Int, row: Int) {
-        val label = "[\$i] inv"
         g.foregroundColor = TextColor.ANSI.CYAN
         g.enableModifiers(SGR.BOLD)
         val keyPart = "[i]"

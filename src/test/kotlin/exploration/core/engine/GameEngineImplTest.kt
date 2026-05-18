@@ -16,10 +16,6 @@ class GameEngineImplTest {
         startArea = AreaId("Forest")
     )
 
-    private val scenarioRepo: ScenarioRepository = object : ScenarioRepository {
-        override fun load(id: String): GameState = GameState(world, Player(10, 10, world.startArea))
-    }
-
     @Test
     fun `start creates game via store`() {
         val store = object : GameStateStore {

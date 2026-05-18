@@ -96,7 +96,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
         val aName = a?.name ?: ""
         val dName = d?.name ?: ""
         val leftPad = (26 - aName.length).coerceAtLeast(3)
-        var line = "  [W] ${aName.ifEmpty { "  " }}${" ".repeat(leftPad)}[E] ${dName.ifEmpty { "  " }}"
+        val line = "  [W] ${aName.ifEmpty { "  " }}${" ".repeat(leftPad)}[E] ${dName.ifEmpty { "  " }}"
         println(line)
         println()
 
