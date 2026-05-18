@@ -48,110 +48,135 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
     private data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
 
-    fun run(scenarioId: String) {
-        var ref: GameRef
-        try {
-            ref = engine.start(scenarioId)
-        } catch (e: Exception) {
-            println("Error loading scenario '$scenarioId': ${e.message}")
-            e.printStackTrace()
-            return
-        }
-
-        val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
-        screen.stopScreen()
-        screen.startScreen()
-        screen.cursorPosition = null
-
-        val history = mutableListOf<HistoryEntry>()
-        var shownTriggers = 0
-        var selectionState: SelectionState? = null
+    private data class LoopState(
+        var history: MutableList<HistoryEntry>,
+        var currentView: ViewData,
+        var shownTriggers: Int = 0,
+        var storedStoryCount: Int = 0,
+        var selectionState: SelectionState? = null,
         var overlay: Overlay = Overlay.None
-        var storedStoryCount = 0
+    )
 
-        addMessage(history, "=== Exploration Engine (Lanterna) ===", false)
+    fun run(scenarioId: String) {
+        val ref = startEngine(scenarioId) ?: return
+        val screen = setupScreen()
+
+        val state = LoopState(
+            history = mutableListOf(),
+            currentView = engine.tick(ref, InputEvent.Look),
+        )
+
+        addMessage(state.history, "=== Exploration Engine (Lanterna) ===", false)
         addMessage(
-            history,
+            state.history,
             "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | j: stories | h: help | q/esc: quit",
             false
         )
 
-        var currentView = engine.tick(ref, InputEvent.Look)
-        render(screen, currentView, history, overlay)
+        initFirstView(screen, state)
+        gameLoop(screen, ref, state)
+        endGameScreen(screen, state)
 
-        val initialStoryCount = currentView.storyMessages.size
-        storedStoryCount = initialStoryCount
-        if (initialStoryCount > 0) {
-            val subList = currentView.storyMessages.subList(0, initialStoryCount)
-            overlay = Overlay.MessageViewer(subList, focusedIndex = subList.lastIndex)
-            render(screen, currentView, history, overlay)
+        screen.stopScreen()
+        printEndSummary(state.currentView, state.history)
+    }
+
+    private fun startEngine(scenarioId: String): GameRef? {
+        try {
+            return engine.start(scenarioId)
+        } catch (e: Exception) {
+            println("Error loading scenario '$scenarioId': ${e.message}")
+            e.printStackTrace()
+            return null
         }
+    }
 
-        while (currentView.endGameMessage == null) {
+    private fun setupScreen(): Screen {
+        val screen = TerminalScreen(DefaultTerminalFactory().createTerminal())
+        screen.stopScreen()
+        screen.startScreen()
+        screen.cursorPosition = null
+        return screen
+    }
+
+    private fun initFirstView(screen: Screen, state: LoopState) {
+        render(screen, state.currentView, state.history, state.overlay)
+
+        val initialStoryCount = state.currentView.storyMessages.size
+        state.storedStoryCount = initialStoryCount
+        if (initialStoryCount > 0) {
+            val subList = state.currentView.storyMessages.subList(0, initialStoryCount)
+            state.overlay = Overlay.MessageViewer(subList, focusedIndex = subList.lastIndex)
+            render(screen, state.currentView, state.history, state.overlay)
+        }
+    }
+
+    private fun gameLoop(screen: Screen, ref: GameRef, state: LoopState) {
+        while (state.currentView.endGameMessage == null) {
             screen.doResizeIfNecessary()
-            val result = readInputKey(screen, currentView, selectionState, overlay)
-            selectionState = result.selectionState
-            overlay = result.overlay
+            val result = readInputKey(screen, state.currentView, state.selectionState, state.overlay)
+            state.selectionState = result.selectionState
+            state.overlay = result.overlay
 
             when (result.action) {
                 is KeyAction.Quit -> break
                 is KeyAction.Help -> {
-                    addMessage(history, "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | j: stories | h: help | q/esc: quit", false)
-                    render(screen, currentView, history, overlay)
-                    continue
+                    addMessage(state.history, "arrows/wasd: move | l: look | u: activate | g: grab | p: drop | e: equip | r: uneq | j: stories | h: help | q/esc: quit", false)
+                    render(screen, state.currentView, state.history, state.overlay)
                 }
                 is KeyAction.NoOp -> {
-                    render(screen, currentView, history, overlay)
-                    continue
+                    render(screen, state.currentView, state.history, state.overlay)
                 }
                 is KeyAction.WaitSelection -> {
-                    val sel = selectionState!!
-                    addMessage(history, buildSelectionPrompt(sel.target, sel.items), false)
-                    render(screen, currentView, history, overlay)
-                    continue
+                    val sel = state.selectionState!!
+                    addMessage(state.history, buildSelectionPrompt(sel.target, sel.items), false)
+                    render(screen, state.currentView, state.history, state.overlay)
                 }
                 is KeyAction.Event -> {
-                    if (overlay != Overlay.None) overlay = Overlay.None
+                    if (state.overlay != Overlay.None) state.overlay = Overlay.None
                     val next = engine.tick(ref, result.action.event)
 
-                    currentView = next
-                    if (next.commandText.isNotBlank()) addMessage(history, next.commandText, false)
-                    val newTriggerCount = next.triggerTexts.size - shownTriggers
-                    for (i in 0 until newTriggerCount) {
-                        val triggerText = next.triggerTexts[shownTriggers + i]
-                        if (triggerText.isNotBlank()) addMessage(history, triggerText, true)
-                    }
+                    state.currentView = next
+                    if (next.commandText.isNotBlank()) addMessage(state.history, next.commandText, false)
+                    appendTriggerMessages(state)
 
-                    // Show the newest story message(s) as overlay
-                    if (next.storyMessages.size > storedStoryCount) {
-                        val subList = next.storyMessages.subList(storedStoryCount, next.storyMessages.size)
-                        overlay = Overlay.MessageViewer(subList, focusedIndex = subList.lastIndex)
-                        storedStoryCount = next.storyMessages.size
+                    if (next.storyMessages.size > state.storedStoryCount) {
+                        val subList = next.storyMessages.subList(state.storedStoryCount, next.storyMessages.size)
+                        state.overlay = Overlay.MessageViewer(subList, focusedIndex = subList.lastIndex)
+                        state.storedStoryCount = next.storyMessages.size
                     } else {
-                        storedStoryCount = next.storyMessages.size
+                        state.storedStoryCount = next.storyMessages.size
                     }
 
-                    shownTriggers = next.triggerTexts.size
-                    render(screen, currentView, history, overlay)
+                    state.shownTriggers = next.triggerTexts.size
+                    render(screen, state.currentView, state.history, state.overlay)
                 }
             }
         }
+    }
 
-        for (i in shownTriggers until currentView.triggerTexts.size) {
-            if (currentView.triggerTexts[i].isNotBlank()) addMessage(history, currentView.triggerTexts[i], true)
+    private fun appendTriggerMessages(state: LoopState) {
+        val newTriggerCount = state.currentView.triggerTexts.size - state.shownTriggers
+        for (i in 0 until newTriggerCount) {
+            val triggerText = state.currentView.triggerTexts[state.shownTriggers + i]
+            if (triggerText.isNotBlank()) addMessage(state.history, triggerText, true)
         }
-        storedStoryCount = currentView.storyMessages.size
-        if (currentView.endGameMessage != null) {
-            addMessage(history, "", false)
-            addMessage(history, currentView.endGameMessage, false)
-        } else if (currentView.outputLine.isNotBlank()) {
-            addMessage(history, currentView.outputLine, false)
+    }
+
+    private fun endGameScreen(screen: Screen, state: LoopState) {
+        for (i in state.shownTriggers until state.currentView.triggerTexts.size) {
+            if (state.currentView.triggerTexts[i].isNotBlank()) addMessage(state.history, state.currentView.triggerTexts[i], true)
+        }
+        state.storedStoryCount = state.currentView.storyMessages.size
+        val endMsg = state.currentView.endGameMessage
+        if (endMsg != null) {
+            addMessage(state.history, "", false)
+            addMessage(state.history, endMsg, false)
+        } else if (state.currentView.outputLine.isNotBlank()) {
+            addMessage(state.history, state.currentView.outputLine, false)
         }
         screen.doResizeIfNecessary()
-        render(screen, currentView, history, overlay)
-
-        screen.stopScreen()
-        printEndSummary(currentView, history)
+        render(screen, state.currentView, state.history, state.overlay)
     }
 
     private sealed class KeyAction {
