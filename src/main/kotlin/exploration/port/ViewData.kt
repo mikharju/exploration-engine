@@ -1,5 +1,6 @@
 package exploration.port
 
+import exploration.core.model.Direction
 import exploration.core.model.StatusRange
 
 data class ItemView(
@@ -25,7 +26,7 @@ data class ViewData(
     val totalAreas: Int,
     val activatedCount: Int,
     val totalDevices: Int,
-    val exits: List<ExitInfo?>,
+    val exits: Map<Direction, ExitInfo?>,
     val statuses: Map<String, Int> = emptyMap(),
     val statusBounds: Map<String, StatusRange> = emptyMap(),
     val endGameMessage: String? = null,

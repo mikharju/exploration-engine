@@ -226,7 +226,12 @@ class InputMapperTest {
         outputLine = "You are in a room.", commandText = "", triggerTexts = emptyList(),
         health = 10, maxHealth = 20, currentAreaName = "Room",
         exploredCount = 1, totalAreas = 1, activatedCount = 0, totalDevices = 1,
-        exits = emptyList(), statuses = emptyMap(), statusBounds = emptyMap(),
+        exits = mapOf(
+            InputEvent.Direction.North to null,
+            InputEvent.Direction.West to null,
+            InputEvent.Direction.South to null,
+            InputEvent.Direction.East to null
+        ), statuses = emptyMap(), statusBounds = emptyMap(),
         areaItems = areaItems, carriedItems = carriedItems, equippedItems = equippedItems,
         storyMessages = storyMessages
     )

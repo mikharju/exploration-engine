@@ -453,10 +453,10 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         topRow: Int
     ) {
         val exits = view.exits
-        val wInfo = exits.getOrNull(0)
-        val aInfo = exits.getOrNull(1)
-        val sInfo = exits.getOrNull(2)
-        val dInfo = exits.getOrNull(3)
+        val wInfo = exits[InputEvent.Direction.North]
+        val aInfo = exits[InputEvent.Direction.West]
+        val sInfo = exits[InputEvent.Direction.South]
+        val dInfo = exits[InputEvent.Direction.East]
 
         val wLabel = UiUtils.exitLabel('w', wInfo)
         val aLabel = UiUtils.exitLabel('a', aInfo)

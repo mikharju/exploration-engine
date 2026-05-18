@@ -1,13 +1,17 @@
 package exploration.core.model
 
-enum class Direction(val index: Int, val key: String, val displayName: String) {
-    North(0, "w", "North"),
-    West(1, "a", "West"),
-    South(2, "s", "South"),
-    East(3, "d", "East");
+enum class Direction(val key: String, val displayName: String) {
+    North("w", "North"),
+    West("a", "West"),
+    South("s", "South"),
+    East("d", "East");
 
     companion object {
-        fun fromIndex(index: Int): Direction? = values().getOrNull(index)
-        fun parse(name: String): Direction? = entries.find { it.name.equals(name, ignoreCase = true) }
+        private val byKey = mapOf('w' to North, 'a' to West, 's' to South, 'd' to East)
+        private val byName = mapOf("north" to North, "west" to West, "south" to South, "east" to East)
+
+        fun fromKey(key: Char): Direction? = byKey[key]
+        fun parse(name: String): Direction? = byName[name.lowercase()]
+        internal fun fromIndex(index: Int): Direction? = values().getOrNull(index)
     }
 }

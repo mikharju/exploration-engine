@@ -59,8 +59,8 @@ class GameEngineImplTest {
         val view = engine.tick(ref, InputEvent.Look)
 
         assertEquals(4, view.exits.size)
-        assertEquals(null, view.exits[0]) // North has no exit from Forest
-        assertEquals(null, view.exits[1]) // West has no exit from Forest
+        assertEquals(null, view.exits[Direction.North]) // North has no exit from Forest
+        assertEquals(null, view.exits[Direction.West])  // West has no exit from Forest
     }
 
     @Test

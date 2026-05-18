@@ -37,14 +37,14 @@ data class GameState(
         return devices
     }
 
-    fun visibleExits(currentArea: AreaId): List<Direction> {
-        val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction.index }
+    fun visibleExits(currentArea: AreaId): Set<Direction> {
+        val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction }
         return Direction.values().filter { dir ->
-            val exit = exitsByDir[dir.index] ?: return@filter false
+            val exit = exitsByDir[dir] ?: return@filter false
             val id = ExitId(currentArea, exit.targetArea)
             val data = exitStates[id] ?: ExitStateData() // default: not hidden
             !data.hidden
-        }
+        }.toSet()
     }
 
     fun isExitBlocked(from: AreaId, to: AreaId): Boolean {

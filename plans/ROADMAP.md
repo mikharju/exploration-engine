@@ -36,6 +36,9 @@ and uses page up and page down key functionality.
 - CommandProcessor
 - ScenarioLoader
 - Qualified name use in files, for ex. ScenarioFile, ScenarioLoader
+- setStatus health confusion
+
+# Investigate sandbox sbx!!
 
 # New time costs
 

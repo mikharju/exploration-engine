@@ -21,7 +21,7 @@ class GameEngineImpl(
         val command: Command? = when (event) {
             is InputEvent.Look -> Command.Look
             is InputEvent.Activate -> Command.Activate
-            is InputEvent.MoveDirection -> resolveDirection(state, event.direction.index)
+            is InputEvent.MoveDirection -> resolveDirection(state, event.direction)
             is InputEvent.TakeItem -> Command.TakeItem(event.itemName)
             is InputEvent.DropItem -> Command.DropItem(event.itemName)
             is InputEvent.EquipItem -> Command.EquipItem(event.itemName)
@@ -34,9 +34,11 @@ class GameEngineImpl(
         return makeView(state)
     }
 
-    private fun resolveDirection(state: GameState, index: Int): Command? {
-        val info = sortedExits(state).getOrNull(index)?.name ?: return null
-        return Command.Move(info)
+    private fun resolveDirection(state: GameState, dir: Direction): Command? {
+        val area = state.world.getArea(state.player.currentArea)
+        val exit = area.exits.find { it.direction == dir } ?: return null
+        if (state.isExitBlocked(state.player.currentArea, exit.targetArea)) return null
+        return Command.Move(exit.targetArea.name)
     }
 
     private fun makeView(state: GameState): ViewData {
@@ -94,19 +96,18 @@ class GameEngineImpl(
             .map { ItemView(it.id.name, it.description, it.locked) }
     }
 
-    private fun sortedExits(state: GameState): List<ExitInfo?> {
+    private fun sortedExits(state: GameState): Map<Direction, ExitInfo?> {
+        val area = state.world.getArea(state.player.currentArea)
         val visibleDirs = state.visibleExits(state.player.currentArea)
-        return Direction.values().map { dir ->
-            if (dir in visibleDirs) {
-                val exit = state.world.getArea(state.player.currentArea).exits
-                    .find { it.direction == dir }
-                if (exit != null) {
-                    ExitInfo(
-                        name = exit.targetArea.name,
-                        blocked = state.isExitBlocked(state.player.currentArea, exit.targetArea)
-                    )
-                } else null
-            } else null
+        return buildMap {
+            for (dir in Direction.values()) {
+                if (dir in visibleDirs) {
+                    val exit = area.exits.find { it.direction == dir }
+                    this[dir] = exit?.let { ExitInfo(it.targetArea.name, state.isExitBlocked(state.player.currentArea, it.targetArea)) }
+                } else {
+                    this[dir] = null
+                }
+            }
         }
     }
 }

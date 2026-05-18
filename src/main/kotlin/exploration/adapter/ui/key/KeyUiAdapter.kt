@@ -80,32 +80,30 @@ class KeyUiAdapter(private val engine: GameEngine) {
         printWasdLayout(v.exits)
     }
 
-    private fun printWasdLayout(exits: List<ExitInfo?>) {
-        val w = exits.getOrNull(0)
-        val a = exits.getOrNull(1)
-        val s = exits.getOrNull(2)
-        val d = exits.getOrNull(3)
+    private fun printWasdLayout(exits: Map<InputEvent.Direction, ExitInfo?>) {
+        val w = exits[InputEvent.Direction.North]
+        val a = exits[InputEvent.Direction.West]
+        val s = exits[InputEvent.Direction.South]
+        val d = exits[InputEvent.Direction.East]
 
         println()
-        val padW = if (w == null || w.name.isNullOrEmpty()) "  [w]       " else {
+        if (w != null && !w.name.isNullOrEmpty()) {
             val suffix = if (w.blocked) " (B)" else ""
-            "  [w] ${w.name}$suffix    "
+            println("  [N] ${w.name}$suffix")
         }
-        println(padW.padEnd(40))
         println()
 
         val aName = a?.name ?: ""
         val dName = d?.name ?: ""
         val leftPad = (26 - aName.length).coerceAtLeast(3)
-        println("[a] ${aName.ifEmpty { "  " }}${" ".repeat(leftPad)}[d] ${dName.ifEmpty { "  " }}")
+        var line = "  [W] ${aName.ifEmpty { "  " }}${" ".repeat(leftPad)}[E] ${dName.ifEmpty { "  " }}"
+        println(line)
         println()
 
-        val sName = s?.name ?: ""
-        val padS = if (sName.isEmpty()) "  [s]       " else {
-            val suffix = if (s!!.blocked) " (B)" else ""
-            "  [s] ${sName}$suffix    "
+        if (s != null && !s.name.isNullOrEmpty()) {
+            val suffix = if (s.blocked) " (B)" else ""
+            println("  [S] ${s.name}$suffix")
         }
-        println(padS.padEnd(40))
     }
 
     private var ttyStream: java.io.FileInputStream? = null
