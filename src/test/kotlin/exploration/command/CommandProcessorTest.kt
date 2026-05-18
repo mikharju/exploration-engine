@@ -119,29 +119,75 @@ class CommandProcessorTest {
     }
 
     @Test
-    fun `health drops to zero triggers game over lose`() {
+    fun `health drops to zero does not end the game`() {
         val lowHealth = initialState.copy(player = Player(3, 20, AreaId("C")))
         val result = processCommand(lowHealth, Command.Activate)
-        assertTrue(result.isOver)
-        assertEquals(false, result.win)
+        assertEquals(0, result.player.health)
+        assertNull(result.endGameMessage)
     }
 
     @Test
-    fun `all explored and activated triggers win`() {
+    fun `all explored and activated does not end the game`() {
         val allDone = initialState.copy(
             exploredAreas = world.areas.keys,
             activatedDevices = setOf(DeviceId("Herb"), DeviceId("Sign"), DeviceId("Trap"))
         )
         val result = processCommand(allDone, Command.Look)
-        assertTrue(result.isOver)
-        assertEquals(true, result.win)
+        assertNull(result.endGameMessage)
     }
 
     @Test
-    fun `command on over state returns message`() {
-        val gameOver = initialState.copy(isOver = true, win = false)
+    fun `look still works on end game state`() {
+        val gameOver = initialState.copy(endGameMessage = "You collapse from exhaustion... Game Over.")
         val result = processCommand(gameOver, Command.Look)
+        assertTrue(AreaId("A") in result.exploredAreas)
+        assertTrue(result.commandOutput.contains("Room A"))
+    }
+
+    @Test
+    fun `non-look commands are rejected on end game state`() {
+        val gameOver = initialState.copy(endGameMessage = "You collapse from exhaustion... Game Over.")
+        val result = processCommand(gameOver, Command.Move("B"))
         assertTrue(result.commandOutput.contains("game is over"))
+    }
+
+    @Test
+    fun `endGame effect ends the game with custom message`() {
+        val a1 = AreaId("A")
+        val a2 = AreaId("Vault")
+        val worldWithEnd = World(
+            areas = mapOf(a1 to Area(a1, "Room A", setOf(Exit(a2, Direction.East))), a2 to Area(a2, "The Vault.", emptySet())),
+            startArea = a1
+        )
+        val state = GameState(
+            world = worldWithEnd,
+            player = Player(10, 20, a1),
+            triggers = listOf(Trigger("end", OwnerType.AREA, "Vault", emptyList(), listOf(Effect.EndGame("You discovered the hidden purpose of the last alien device."))))
+        )
+        val result = processCommand(state, Command.Move("Vault"))
+        assertEquals(AreaId("Vault"), result.player.currentArea)
+        assertNotNull(result.endGameMessage)
+        assertTrue(result.endGameMessage.contains("hidden purpose"))
+    }
+
+    @Test
+    fun `endGame does not prevent further commands being rejected`() {
+        val a1 = AreaId("A")
+        val a2 = AreaId("End")
+        val worldWithEnd = World(
+            areas = mapOf(a1 to Area(a1, "A", setOf(Exit(a2, Direction.East))), a2 to Area(a2, "B.", emptySet())),
+            startArea = a1
+        )
+        val state = GameState(
+            world = worldWithEnd,
+            player = Player(10, 20, a1),
+            triggers = listOf(Trigger("end", OwnerType.AREA, "End", emptyList(), listOf(Effect.EndGame("It ends here."))))
+        )
+        val afterEnd = processCommand(state, Command.Move("End"))
+        assertTrue(afterEnd.endGameMessage != null)
+        val nextCmd = processCommand(afterEnd, Command.Look)
+        assertEquals(AreaId("End"), nextCmd.player.currentArea)
+        assertTrue(nextCmd.commandOutput.contains("B."))
     }
 
     @Test
@@ -275,7 +321,7 @@ class CommandProcessorTest {
 
     @Test
     fun `game over state rejects all item commands`() {
-        val gameOver = initialState.copy(isOver = true, win = false)
+        val gameOver = initialState.copy(endGameMessage = "The end.")
         val withItems = gameOver.copy(
             items = listOf(Item(ItemId("Key"), "A key.", Location(ItemLocationType.CARRIED)))
         )

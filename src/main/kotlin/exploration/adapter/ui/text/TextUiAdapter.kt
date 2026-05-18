@@ -22,7 +22,7 @@ class TextUiAdapter(private val engine: GameEngine) {
         render(initialView)
 
         var lastView = initialView
-        while (!lastView.gameOver) {
+        while (lastView.endGameMessage == null) {
             print("> ")
             val line = readLine()?.trim() ?: break
             if (line.isEmpty()) continue
@@ -43,8 +43,7 @@ class TextUiAdapter(private val engine: GameEngine) {
             render(lastView)
         }
 
-        val finalView = engine.tick(ref, InputEvent.Look)
-        showEnd(finalView)
+        showEnd(lastView)
     }
 
     private fun render(v: ViewData) {
@@ -83,24 +82,19 @@ class TextUiAdapter(private val engine: GameEngine) {
             }.joinToString(" ").trim()
         }
 
-        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices} | Exits: $exitStr]$statusStr")
+        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Exits: $exitStr]$statusStr")
     }
 
     private fun printIntro() {
         println("=== Exploration Engine ===")
         println("Commands: l, u, w/a/s/d, help, quit")
-        println("Goal: explore all areas and activate all devices. Don't run out of health!")
         println()
     }
 
     private fun showEnd(v: ViewData) {
         println()
-        if (v.outputLine.isNotBlank()) println(v.outputLine)
+        if (v.endGameMessage != null) println(v.endGameMessage)
+        else if (v.outputLine.isNotBlank()) println(v.outputLine)
         println()
-        if (v.win == true) {
-            println("CONGRATULATIONS! You completed the exploration!")
-        } else if (v.gameOver && v.win != true) {
-            println("GAME OVER - Better luck next time.")
-        }
     }
 }

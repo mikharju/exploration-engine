@@ -282,6 +282,25 @@ class TriggerTest {
     }
 
     @Test
+    fun `endGame effect ends the game with custom message`() {
+        val state = baseState().copy(
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.EndGame("You found the truth."))))
+        )
+        val result = fireAreaTriggers(state, AreaId("Forest"))
+        assertEquals("You found the truth.", result.endGameMessage)
+    }
+
+    @Test
+    fun `endGame does not override existing end game message`() {
+        val state = baseState().copy(
+            endGameMessage = "Already ended.",
+            triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.EndGame("This should be ignored."))))
+        )
+        val result = fireAreaTriggers(state, AreaId("Forest"))
+        assertEquals("Already ended.", result.endGameMessage)
+    }
+
+    @Test
     fun `trigger loading with new exit effects`() {
         val entry = TriggerEntry(
             id = "t1", ownerType = "AREA", ownerId = "Forest",

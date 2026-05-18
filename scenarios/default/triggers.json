@@ -101,13 +101,35 @@
       {"type": "displayText", "text": "The machine whirrs and a hidden passage is revealed in the eastern wall!"}
     ]
   },
-  {
-    "id": "orbUnblock",
-    "ownerType": "DEVICE",
-    "ownerId": "Orb",
-    "effects": [
-      {"type": "setExitBlocked", "fromId": "Ruins", "toId": "Sanctuary", "blocked": false},
-      {"type": "displayText", "text": "A warm pulse emanates from the orb, unlocking the ancient mechanism."}
-    ]
-  }
+    {
+      "id": "orbUnblock",
+      "ownerType": "DEVICE",
+      "ownerId": "Orb",
+      "effects": [
+        {"type": "setExitBlocked", "fromId": "Ruins", "toId": "Sanctuary", "blocked": false},
+        {"type": "displayText", "text": "A warm pulse emanates from the orb, unlocking the ancient mechanism."}
+      ]
+    },
+    {
+      "id": "sanctumFound",
+      "ownerType": "AREA",
+      "ownerId": "Sanctuary",
+      "effects": [
+        {"type": "endGame", "text": "You found the sanctum and its secrets."}
+      ],
+      "singleUse": false
+    },
+    {
+      "id": "deathAtZero",
+      "ownerType": "STATUS",
+      "ownerId": "health",
+      "conditions": [
+        {"statusName": "health", "op": "<", "threshold": 1}
+      ],
+      "effects": [
+        {"type": "displayText", "text": "Your vision fades. The ruins claim another soul."},
+        {"type": "endGame", "text": "The darkness takes you. Game Over."}
+      ],
+      "singleUse": true
+    }
 ]

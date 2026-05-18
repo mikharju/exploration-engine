@@ -97,7 +97,8 @@ data class EffectEntry(
     val locationId: String? = null,
     val fromId: String? = null,
     val toId: String? = null,
-    val blocked: Boolean? = null
+    val blocked: Boolean? = null,
+    val win: Boolean? = null
 )
 
 @Serializable
@@ -118,5 +119,6 @@ data class ScenarioConfig(
     val devicesFile: String,
     val statuses: Map<String, StatusEntry> = emptyMap(),
     val triggersFile: String? = null,
-    val itemsFile: String? = null
+    val itemsFile: String? = null,
+    val welcomeMessage: String = ""
 )

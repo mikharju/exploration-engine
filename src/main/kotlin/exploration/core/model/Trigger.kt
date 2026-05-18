@@ -12,7 +12,7 @@ data class ActivationCondition(
     val itemId: ItemId? = null
 )
 
-enum class ComparisonOp { GT, LT }
+enum class ComparisonOp { GT, LT, LTE, GTE, EQ }
 
 sealed interface TriggerOwner {
     data class Area(val areaId: AreaId) : TriggerOwner
@@ -46,6 +46,8 @@ sealed class Effect {
     data class SetExitBlocked(val from: AreaId, val to: AreaId, val blocked: Boolean = true) : Effect()
     data class HideExit(val from: AreaId, val to: AreaId) : Effect()
     data class ShowExit(val from: AreaId, val to: AreaId) : Effect()
+
+    data class EndGame(val text: String) : Effect()
 }
 
 data class Trigger(

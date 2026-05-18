@@ -23,7 +23,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
             render(initialView)
 
             var lastView = initialView
-            while (!lastView.gameOver) {
+            while (lastView.endGameMessage == null) {
                 val event = waitForInput()
                 when (event) {
                     null -> break
@@ -34,7 +34,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
                 }
             }
 
-            showEnd(engine.tick(ref, InputEvent.Look))
+            showEnd(lastView)
         } finally {
             disableRawInput()
             AnsiConsole.systemUninstall()
@@ -76,7 +76,7 @@ class KeyUiAdapter(private val engine: GameEngine) {
                 append(if (i <= v.health / 2) "#" else ".")
             }
         }
-        println("[HP: ${v.health}/${v.maxHealth} [$bar] | Explored: ${v.exploredCount}/${v.totalAreas} | Devices: ${v.activatedCount}/${v.totalDevices}]")
+        println("[HP: ${v.health}/${v.maxHealth} [$bar]]")
         printWasdLayout(v.exits)
     }
 
@@ -146,18 +146,13 @@ class KeyUiAdapter(private val engine: GameEngine) {
     private fun printIntro() {
         println("=== Exploration Engine (Key Mode) ===")
         println("w/a/s/d: move | l: look | u: activate | q/esc: quit")
-        println("Goal: explore all areas and activate all devices. Don't run out of health!")
         println()
     }
 
     private fun showEnd(v: ViewData) {
         println()
-        if (v.outputLine.isNotBlank()) println(v.outputLine)
+        if (v.endGameMessage != null) println(v.endGameMessage)
+        else if (v.outputLine.isNotBlank()) println(v.outputLine)
         println()
-        if (v.win == true) {
-            println("CONGRATULATIONS! You completed the exploration!")
-        } else if (v.gameOver && v.win != true) {
-            println("GAME OVER - Better luck next time.")
-        }
     }
 }
