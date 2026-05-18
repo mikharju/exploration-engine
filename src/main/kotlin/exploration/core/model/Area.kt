@@ -12,9 +12,7 @@ enum class ExitState { OPEN, BLOCKED }
 data class ExitStateData(
     val state: ExitState = ExitState.OPEN,
     val hidden: Boolean = false
-) {
-    val visible: Boolean = !hidden && state == ExitState.OPEN
-}
+)
 
 data class Exit(
     val targetArea: AreaId,
@@ -42,6 +40,4 @@ data class Area(
     val device: Device? = null
 ) {
     val connections: Set<AreaId> = exits.map { it.targetArea }.toSet()
-
-
 }

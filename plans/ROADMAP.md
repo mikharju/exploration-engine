@@ -36,6 +36,15 @@ and uses page up and page down key functionality.
 - CommandProcessor
 - ScenarioLoader
 
+# New time costs
+
+- Add time cost to exits and devices
+- Load from json
+- Moving through exits and activating devices advances turn counter by time cost amount
+- Status triggers will fire potentially multiple times on high cost actions
+- Consider simplified turn loop that only fires status triggers during resolution of high cost actions, or propose better alternative
+- Look, pickup, drop, equip, unequip no longer advance turn counter
+
 # Use items
 
 - Add action use item

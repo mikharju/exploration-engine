@@ -278,7 +278,6 @@ class TriggerTest {
         val data = result.exitStates[exploration.model.ExitId(AreaId("Forest"), a2)]!!
         assertEquals(exploration.model.ExitState.BLOCKED, data.state)
         assertTrue(data.hidden)
-        assertFalse(data.visible)
     }
 
     @Test
