@@ -3,6 +3,7 @@ package exploration.core.state
 import exploration.core.model.AreaId
 import exploration.core.model.Direction
 import exploration.core.model.ExitId
+import exploration.core.model.ExitState
 import exploration.core.model.ExitStateData
 import exploration.core.model.DeviceId
 import exploration.core.model.Item
@@ -49,6 +50,6 @@ data class GameState(
     fun isExitBlocked(from: AreaId, to: AreaId): Boolean {
         val id = ExitId(from, to)
         val data = exitStates[id] ?: return false
-        return data.state != exploration.core.model.ExitState.OPEN || data.hidden
+        return data.state != ExitState.OPEN || data.hidden
     }
 }

@@ -2,12 +2,13 @@ package exploration.adapter.storage
 
 import exploration.port.GameRef
 import exploration.port.GameStateStore
+import exploration.port.ScenarioRepository
 import exploration.core.state.GameState
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 class InMemoryGameStateStore(
-    private val scenarioRepo: exploration.port.ScenarioRepository,
+    private val scenarioRepo: ScenarioRepository,
     private val store: ConcurrentHashMap<String, GameState> = ConcurrentHashMap(),
     private val counter: AtomicLong = AtomicLong()
 ) : GameStateStore {

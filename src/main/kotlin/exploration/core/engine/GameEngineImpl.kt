@@ -9,7 +9,6 @@ import exploration.port.*
 import exploration.core.state.GameState
 
 class GameEngineImpl(
-    private val scenarioRepo: exploration.port.ScenarioRepository,
     private val store: GameStateStore
 ) : GameEngine {
 

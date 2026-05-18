@@ -31,7 +31,7 @@ class GameEngineImplTest {
             override fun saveGame(ref: GameRef, state: GameState) {}
         }
 
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         assertEquals(GameRef("test"), ref)
@@ -40,7 +40,7 @@ class GameEngineImplTest {
     @Test
     fun `tick with Look returns view`() {
         val store = InMemoryStore(world)
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         val view = engine.tick(ref, InputEvent.Look)
@@ -53,7 +53,7 @@ class GameEngineImplTest {
     @Test
     fun `view shows exits`() {
         val store = InMemoryStore(world)
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         val view = engine.tick(ref, InputEvent.Look)
@@ -66,7 +66,7 @@ class GameEngineImplTest {
     @Test
     fun `tick with direction to non-exit returns error`() {
         val store = InMemoryStore(world)
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         val view = engine.tick(ref, InputEvent.MoveDirection(Direction.South))
@@ -78,7 +78,7 @@ class GameEngineImplTest {
     fun `tick with valid direction moves`() {
         var savedState: GameState? = null
         val store = InMemoryStore(world) { savedState = it }
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         engine.tick(ref, InputEvent.MoveDirection(Direction.East))
@@ -94,7 +94,7 @@ class GameEngineImplTest {
             override fun saveGame(ref: GameRef, state: GameState) {}
         }
 
-        val engine = GameEngineImpl(scenarioRepo, store)
+        val engine = GameEngineImpl(store)
         val ref = engine.start("test")
 
         // loadGame always returns ended state

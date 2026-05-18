@@ -99,7 +99,7 @@ class TriggerTest {
         val state = GameState(
             world = World(mapOf(AreaId("Forest") to Area(AreaId("Forest"), "Forest.", setOf(Exit(a2, Direction.East)), device = null), a2 to Area(a2, "Cell.", setOf())), AreaId("Forest")),
             player = Player(10, 20, AreaId("Forest")),
-            items = listOf(exploration.core.model.Item(ItemId("Map"), "A map.")),
+            items = listOf(Item(ItemId("Map"), "A map.")),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetLocation(ItemId("Map"), Effect.TargetRef.InArea(a2)))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -111,7 +111,7 @@ class TriggerTest {
     @Test
     fun `set location moves item to device`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Crystal"), "A glowing crystal.")),
+            items = listOf(Item(ItemId("Crystal"), "A glowing crystal.")),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetLocation(ItemId("Crystal"), Effect.TargetRef.OnDevice(DeviceId("Orb"))))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -123,7 +123,7 @@ class TriggerTest {
     @Test
     fun `set location for non-existent item is ignored`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Map"), "A map.")),
+            items = listOf(Item(ItemId("Map"), "A map.")),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetLocation(ItemId("Ghost"), Effect.TargetRef.InArea(AreaId("Cell"))))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -133,7 +133,7 @@ class TriggerTest {
     @Test
     fun `lock item effect prevents dropping`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Key"), "A key.", exploration.core.model.Location(exploration.core.model.ItemLocationType.CARRIED))),
+            items = listOf(Item(ItemId("Key"), "A key.", Location(ItemLocationType.CARRIED))),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.LockItem(ItemId("Key")))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -143,7 +143,7 @@ class TriggerTest {
     @Test
     fun `unlock item effect removes lock`() {
         val locked = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Key"), "A key.", exploration.core.model.Location(exploration.core.model.ItemLocationType.CARRIED), locked = true)),
+            items = listOf(Item(ItemId("Key"), "A key.", Location(ItemLocationType.CARRIED), locked = true)),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.UnlockItem(ItemId("Key")))))
         )
         val result = fireAreaTriggers(locked, AreaId("Forest"))
@@ -153,7 +153,7 @@ class TriggerTest {
     @Test
     fun `lock and unlock applied to same item in one batch`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Key"), "A key.", exploration.core.model.Location(exploration.core.model.ItemLocationType.CARRIED))),
+            items = listOf(Item(ItemId("Key"), "A key.", Location(ItemLocationType.CARRIED))),
             triggers = listOf(
                 Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.LockItem(ItemId("Key")))),
                 Trigger("t2", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.UnlockItem(ItemId("Key"))))
@@ -166,7 +166,7 @@ class TriggerTest {
     @Test
     fun `item carried condition is met`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Map"), "A map.", exploration.core.model.Location(exploration.core.model.ItemLocationType.CARRIED))),
+            items = listOf(Item(ItemId("Map"), "A map.", Location(ItemLocationType.CARRIED))),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.ITEM_CARRIED, itemId = ItemId("Map"))), listOf(Effect.DisplayText("Found!"))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -176,7 +176,7 @@ class TriggerTest {
     @Test
     fun `item carried condition is not met`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Gem"), "A gem.", exploration.core.model.Location(exploration.core.model.ItemLocationType.AREA))),
+            items = listOf(Item(ItemId("Gem"), "A gem.", Location(ItemLocationType.AREA))),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.ITEM_CARRIED, itemId = ItemId("Gem"))), listOf(Effect.DisplayText("Found!"))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -186,7 +186,7 @@ class TriggerTest {
     @Test
     fun `item equipped condition is met`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Ring"), "A ring.", exploration.core.model.Location(exploration.core.model.ItemLocationType.EQUIPPED))),
+            items = listOf(Item(ItemId("Ring"), "A ring.", Location(ItemLocationType.EQUIPPED))),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.ITEM_EQUIPPED, itemId = ItemId("Ring"))), listOf(Effect.DisplayText("Blessed!"))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -196,7 +196,7 @@ class TriggerTest {
     @Test
     fun `item equipped condition is not met`() {
         val state = baseState().copy(
-            items = listOf(exploration.core.model.Item(ItemId("Ring"), "A ring.", exploration.core.model.Location(exploration.core.model.ItemLocationType.CARRIED))),
+            items = listOf(Item(ItemId("Ring"), "A ring.", Location(ItemLocationType.CARRIED))),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", listOf(ActivationCondition(checkType = CheckType.ITEM_EQUIPPED, itemId = ItemId("Ring"))), listOf(Effect.DisplayText("Blessed!"))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
@@ -223,8 +223,8 @@ class TriggerTest {
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
         assertEquals(1, result.exitStates.size)
-        val data = result.exitStates[exploration.core.model.ExitId(AreaId("Forest"), a2)]!!
-        assertEquals(exploration.core.model.ExitState.BLOCKED, data.state)
+        val data = result.exitStates[ExitId(AreaId("Forest"), a2)]!!
+        assertEquals(ExitState.BLOCKED, data.state)
     }
 
     @Test
@@ -232,12 +232,12 @@ class TriggerTest {
         val blockedState = GameState(
             world = World(mapOf(AreaId("A") to Area(AreaId("A"), "A.", setOf(Exit(AreaId("B"), Direction.East)), device = null), AreaId("B") to Area(AreaId("B"), "B.", setOf())), AreaId("A")),
             player = Player(10, 20, AreaId("A")),
-            exitStates = mapOf(exploration.core.model.ExitId(AreaId("A"), AreaId("B")) to exploration.core.model.ExitStateData(exploration.core.model.ExitState.BLOCKED)),
+            exitStates = mapOf(ExitId(AreaId("A"), AreaId("B")) to ExitStateData(ExitState.BLOCKED)),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "A", emptyList(), listOf(Effect.SetExitBlocked(AreaId("A"), AreaId("B"), blocked = false))))
         )
         val result = fireAreaTriggers(blockedState, AreaId("A"))
-        val data = result.exitStates[exploration.core.model.ExitId(AreaId("A"), AreaId("B"))]!!
-        assertEquals(exploration.core.model.ExitState.OPEN, data.state)
+        val data = result.exitStates[ExitId(AreaId("A"), AreaId("B"))]!!
+        assertEquals(ExitState.OPEN, data.state)
     }
 
     @Test
@@ -249,7 +249,7 @@ class TriggerTest {
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.HideExit(AreaId("Forest"), a2))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
-        val data = result.exitStates[exploration.core.model.ExitId(AreaId("Forest"), a2)]!!
+        val data = result.exitStates[ExitId(AreaId("Forest"), a2)]!!
         assertTrue(data.hidden)
     }
 
@@ -258,11 +258,11 @@ class TriggerTest {
         val hiddenState = GameState(
             world = World(mapOf(AreaId("A") to Area(AreaId("A"), "A.", setOf(Exit(AreaId("B"), Direction.East)), device = null), AreaId("B") to Area(AreaId("B"), "B.", setOf())), AreaId("A")),
             player = Player(10, 20, AreaId("A")),
-            exitStates = mapOf(exploration.core.model.ExitId(AreaId("A"), AreaId("B")) to exploration.core.model.ExitStateData(exploration.core.model.ExitState.OPEN, hidden = true)),
+            exitStates = mapOf(ExitId(AreaId("A"), AreaId("B")) to ExitStateData(ExitState.OPEN, hidden = true)),
             triggers = listOf(Trigger("t1", OwnerType.AREA, "A", emptyList(), listOf(Effect.ShowExit(AreaId("A"), AreaId("B")))))
         )
         val result = fireAreaTriggers(hiddenState, AreaId("A"))
-        val data = result.exitStates[exploration.core.model.ExitId(AreaId("A"), AreaId("B"))]!!
+        val data = result.exitStates[ExitId(AreaId("A"), AreaId("B"))]!!
         assertFalse(data.hidden)
     }
 
@@ -275,8 +275,8 @@ class TriggerTest {
             triggers = listOf(Trigger("t1", OwnerType.AREA, "Forest", emptyList(), listOf(Effect.SetExitBlocked(AreaId("Forest"), a2), Effect.HideExit(AreaId("Forest"), a2))))
         )
         val result = fireAreaTriggers(state, AreaId("Forest"))
-        val data = result.exitStates[exploration.core.model.ExitId(AreaId("Forest"), a2)]!!
-        assertEquals(exploration.core.model.ExitState.BLOCKED, data.state)
+        val data = result.exitStates[ExitId(AreaId("Forest"), a2)]!!
+        assertEquals(ExitState.BLOCKED, data.state)
         assertTrue(data.hidden)
     }
 
@@ -313,18 +313,6 @@ class TriggerTest {
         val triggers = convertTriggerEntriesWithExits(listOf(entry))
         assertEquals(1, triggers.size)
         assertEquals(2, triggers[0].effects.size)
-    }
-}
-
-private fun convertTriggerEntries(entries: List<TriggerEntry>): List<Trigger> {
-    return entries.map { ef ->
-        Trigger(
-            id = ef.id, ownerType = OwnerType.valueOf(ef.ownerType), ownerId = ef.ownerId,
-            conditions = ef.conditions.map { ActivationCondition(checkType = CheckType.STATUS, statusName = it.statusName, op = when (it.op) { ">" -> ComparisonOp.GT; "<" -> ComparisonOp.LT; else -> error("bad") }, threshold = it.threshold ?: 0) },
-            effects = ef.effects.map { map ->
-                when (map.type) { "changeHealth" -> Effect.ChangeHealth(map.amount!!); "displayText" -> Effect.DisplayText(map.text!!); else -> error("bad") }
-            }, singleUse = ef.singleUse, intervalTurns = ef.intervalTurns
-        )
     }
 }
 

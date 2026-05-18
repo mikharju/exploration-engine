@@ -1,9 +1,10 @@
 package exploration.scenario
 
-import exploration.core.model.ItemLocationType
-import exploration.core.model.LocationTarget
 import exploration.core.model.AreaId
 import exploration.core.model.DeviceId
+import exploration.core.model.ItemLocationType
+import exploration.core.model.Location
+import exploration.core.model.LocationTarget
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -59,7 +60,7 @@ data class ItemEntry(
     val initialLocationType: String = "AREA",
     val initialLocationId: String? = null
 ) {
-    fun toLocation(): exploration.core.model.Location {
+    fun toLocation(): Location {
         val type = when (initialLocationType.uppercase()) {
             "AREA" -> ItemLocationType.AREA
             "DEVICE" -> ItemLocationType.DEVICE
@@ -72,7 +73,7 @@ data class ItemEntry(
             ItemLocationType.DEVICE -> LocationTarget.OnDevice(DeviceId(checkNotNull(initialLocationId)))
             else -> null
         }
-        return exploration.core.model.Location(type, target)
+        return Location(type, target)
     }
 }
 
