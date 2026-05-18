@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 data class ExitId(
     val from: AreaId,

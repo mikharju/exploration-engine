@@ -1,6 +1,6 @@
 package exploration.adapter.ui.lanterna
 
-import exploration.model.StatusRange
+import exploration.core.model.StatusRange
 import exploration.port.ExitInfo
 import exploration.port.ItemView
 import exploration.port.ViewData

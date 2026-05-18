@@ -35,6 +35,7 @@ and uses page up and page down key functionality.
 - LanternaUiAdapter
 - CommandProcessor
 - ScenarioLoader
+- Qualified name use in files, for ex. ScenarioFile, ScenarioLoader
 
 # New time costs
 

@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

@@ -1,10 +1,10 @@
 package exploration.scenario
 
-import exploration.command.Command
-import exploration.command.processCommand
+import exploration.core.command.Command
+import exploration.core.command.processCommand
 import exploration.core.engine.fireAreaTriggers
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

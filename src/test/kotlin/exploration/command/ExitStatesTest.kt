@@ -1,7 +1,7 @@
-package exploration.command
+package exploration.core.command
 
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.*

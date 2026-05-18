@@ -1,6 +1,6 @@
 package exploration.port
 
-import exploration.state.GameState
+import exploration.core.state.GameState
 
 /**
  * Port for persisting [GameState] instances identified by [GameRef].

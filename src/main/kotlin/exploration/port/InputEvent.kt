@@ -1,7 +1,5 @@
 package exploration.port
 
-import exploration.model.Direction
-
 sealed class InputEvent {
     object Look : InputEvent()
     object Activate : InputEvent()
@@ -12,5 +10,5 @@ sealed class InputEvent {
     data class UnequipItem(val itemName: String) : InputEvent()
     object Inventory : InputEvent()
 
-    typealias Direction = exploration.model.Direction
+    typealias Direction = exploration.core.model.Direction
 }

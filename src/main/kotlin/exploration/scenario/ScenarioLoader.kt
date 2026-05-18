@@ -1,8 +1,8 @@
 package exploration.scenario
 
 import exploration.core.engine.fireAreaTriggers
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 
 fun assembleGame(
     config: ScenarioConfig,
@@ -54,20 +54,20 @@ fun assembleGame(
     return fireAreaTriggers(state, startId)
 }
 
-private fun buildInitialExitStates(areaEntries: List<AreaEntry>, areaIds: Set<String>): Map<exploration.model.ExitId, exploration.model.ExitStateData> {
-    val result = mutableMapOf<exploration.model.ExitId, exploration.model.ExitStateData>()
+private fun buildInitialExitStates(areaEntries: List<AreaEntry>, areaIds: Set<String>): Map<exploration.core.model.ExitId, exploration.core.model.ExitStateData> {
+    val result = mutableMapOf<exploration.core.model.ExitId, exploration.core.model.ExitStateData>()
     for (entry in areaEntries) {
         val from = AreaId(entry.id)
         if ((entry.exits ?: emptyList()).isNotEmpty()) {
             for (exitEntry in entry.exits!!) {
                 require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target: ${exitEntry.areaId}" }
                 val to = AreaId(exitEntry.areaId)
-                val id = exploration.model.ExitId(from, to)
+                val id = exploration.core.model.ExitId(from, to)
                 val state = when (exitEntry.initialState?.lowercase()) {
-                    "blocked" -> exploration.model.ExitState.BLOCKED
-                    else -> exploration.model.ExitState.OPEN  // default and any unknown value
+                    "blocked" -> exploration.core.model.ExitState.BLOCKED
+                    else -> exploration.core.model.ExitState.OPEN  // default and any unknown value
                 }
-                result[id] = exploration.model.ExitStateData(state, exitEntry.hidden)
+                result[id] = exploration.core.model.ExitStateData(state, exitEntry.hidden)
             }
         }
     }

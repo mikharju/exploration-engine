@@ -1,7 +1,7 @@
 package exploration.core.engine
 
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 
 fun fireAreaTriggers(state: GameState, areaId: AreaId): GameState {
     val candidates = state.triggers.filter { it.owner is TriggerOwner.Area && it.areaId() == areaId }

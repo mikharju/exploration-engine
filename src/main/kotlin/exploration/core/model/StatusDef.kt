@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 data class StatusRange(
     val min: Int = 0,

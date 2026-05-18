@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 enum class Direction(val index: Int, val key: String, val displayName: String) {
     North(0, "w", "North"),

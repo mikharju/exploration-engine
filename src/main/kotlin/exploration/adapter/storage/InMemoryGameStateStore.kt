@@ -2,7 +2,7 @@ package exploration.adapter.storage
 
 import exploration.port.GameRef
 import exploration.port.GameStateStore
-import exploration.state.GameState
+import exploration.core.state.GameState
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 

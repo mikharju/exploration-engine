@@ -1,4 +1,4 @@
-package exploration.command
+package exploration.core.command
 
 sealed class Command {
     object Look : Command()

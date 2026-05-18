@@ -1,8 +1,8 @@
 package exploration.core.engine
 
-import exploration.model.*
+import exploration.core.model.*
 import exploration.port.*
-import exploration.state.GameState
+import exploration.core.state.GameState
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 

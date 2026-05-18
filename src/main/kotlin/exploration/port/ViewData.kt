@@ -1,6 +1,6 @@
 package exploration.port
 
-import exploration.model.StatusRange
+import exploration.core.model.StatusRange
 
 data class ItemView(
     val name: String,

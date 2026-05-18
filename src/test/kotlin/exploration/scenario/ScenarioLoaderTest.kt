@@ -1,11 +1,10 @@
 package exploration.scenario
 
 import exploration.adapter.jsonloader.loadScenarioFiles
-import exploration.model.AreaId
-import exploration.model.DeviceId
-import exploration.model.ExitState
-import exploration.model.ExitStateData
-import exploration.model.ExitId
+import exploration.core.model.AreaId
+import exploration.core.model.DeviceId
+import exploration.core.model.ExitState
+import exploration.core.model.ExitId
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path

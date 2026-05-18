@@ -1,12 +1,12 @@
 package exploration.core.engine
 
-import exploration.command.Command
-import exploration.command.processCommand
-import exploration.model.Direction
-import exploration.model.ItemLocationType
-import exploration.model.LocationTarget
+import exploration.core.command.Command
+import exploration.core.command.processCommand
+import exploration.core.model.Direction
+import exploration.core.model.ItemLocationType
+import exploration.core.model.LocationTarget
 import exploration.port.*
-import exploration.state.GameState
+import exploration.core.state.GameState
 
 class GameEngineImpl(
     private val scenarioRepo: exploration.port.ScenarioRepository,

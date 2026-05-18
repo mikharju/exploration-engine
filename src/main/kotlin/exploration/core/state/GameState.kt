@@ -1,17 +1,17 @@
-package exploration.state
+package exploration.core.state
 
-import exploration.model.AreaId
-import exploration.model.Direction
-import exploration.model.ExitId
-import exploration.model.ExitStateData
-import exploration.model.DeviceId
-import exploration.model.Item
+import exploration.core.model.AreaId
+import exploration.core.model.Direction
+import exploration.core.model.ExitId
+import exploration.core.model.ExitStateData
+import exploration.core.model.DeviceId
+import exploration.core.model.Item
 
-import exploration.model.Player
-import exploration.model.World
+import exploration.core.model.Player
+import exploration.core.model.World
 
-import exploration.model.StatusRange
-import exploration.model.Trigger
+import exploration.core.model.StatusRange
+import exploration.core.model.Trigger
 
 data class GameState(
     val world: World,
@@ -49,6 +49,6 @@ data class GameState(
     fun isExitBlocked(from: AreaId, to: AreaId): Boolean {
         val id = ExitId(from, to)
         val data = exitStates[id] ?: return false
-        return data.state != exploration.model.ExitState.OPEN || data.hidden
+        return data.state != exploration.core.model.ExitState.OPEN || data.hidden
     }
 }
