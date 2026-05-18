@@ -39,7 +39,7 @@ data class GameState(
 
     fun visibleExits(currentArea: AreaId): Set<Direction> {
         val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction }
-        return Direction.values().filter { dir ->
+        return Direction.entries.filter { dir ->
             val exit = exitsByDir[dir] ?: return@filter false
             val id = ExitId(currentArea, exit.targetArea)
             val data = exitStates[id] ?: ExitStateData() // default: not hidden

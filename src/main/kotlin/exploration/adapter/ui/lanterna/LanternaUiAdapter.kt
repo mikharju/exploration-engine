@@ -22,9 +22,6 @@ sealed interface Overlay {
 
         fun overlayTextAreaMaxWidth(screen: Screen): Int =
             minOf(170, maxOf(40, screen.terminalSize.columns - 10)) - 2
-
-        fun overlayTextAreaMaxHeight(screen: Screen): Int =
-            (this.maxHeight + 3).coerceAtMost(screen.terminalSize.rows - 6)
     }
 }
 
@@ -196,7 +193,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         // Draw overlay if active
         when (overlay) {
             is Overlay.MessageViewer -> {
-                drawMessageOverlay(screen, g, view, overlay, size)
+                drawMessageOverlay(screen, g, overlay, size)
                 screen.refresh()
                 return
             }
@@ -224,7 +221,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     private fun drawMessageOverlay(
         screen: Screen,
         g: TextGraphics,
-        view: ViewData,
         overlay: Overlay.MessageViewer,
         size: com.googlecode.lanterna.TerminalSize
     ) {

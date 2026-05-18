@@ -65,7 +65,7 @@ class TextUiAdapter(private val engine: GameEngine) {
         val exitStr = if (v.exits.values.all { it == null }) {
             "(none)"
         } else {
-            Direction.values().mapNotNull { dir ->
+            Direction.entries.mapNotNull { dir ->
                 v.exits[dir]?.let { info ->
                     val suffix = if (info.blocked) " (B)" else ""
                     "[${dir.name[0]}] ${info.name}$suffix"
