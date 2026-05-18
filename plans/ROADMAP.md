@@ -30,6 +30,12 @@ and uses page up and page down key functionality.
 - Scenario file should set welcome message and default final message
 - Game no longer ends if all areas are explored and all devices activated
 
+# Reviews needed
+
+- LanternaUiAdapter
+- CommandProcessor
+- ScenarioLoader
+
 # Use items
 
 - Add action use item
