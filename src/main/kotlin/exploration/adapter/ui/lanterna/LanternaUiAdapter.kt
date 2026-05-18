@@ -8,7 +8,6 @@ import com.googlecode.lanterna.input.KeyType
 import com.googlecode.lanterna.screen.Screen
 import com.googlecode.lanterna.screen.TerminalScreen
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory
-import exploration.model.StatusRange
 import exploration.port.ExitInfo
 import exploration.port.GameEngine
 import exploration.port.GameRef
@@ -16,37 +15,36 @@ import exploration.port.InputEvent
 import exploration.port.ItemView
 import exploration.port.ViewData
 
-class LanternaUiAdapter(private val engine: GameEngine) {
+public data class HistoryEntry(val text: String, val isTrigger: Boolean)
 
-    data class HistoryEntry(val text: String, val isTrigger: Boolean)
+public sealed interface Overlay {
+    object None : Overlay
+    data class MessageViewer(
+        val messages: List<String>,
+        var scrollOffset: Int = 0,
+        val maxHeight: Int = 20,
+        var focusedIndex: Int = 0
+    ) : Overlay {
 
-    sealed interface Overlay {
-        object None : Overlay
-        data class MessageViewer(
-            val messages: List<String>,
-            var scrollOffset: Int = 0,
-            val maxHeight: Int = 20,
-            var focusedIndex: Int = 0
-        ) : Overlay {
+        fun overlayTextAreaMaxWidth(screen: Screen): Int =
+            minOf(170, maxOf(40, screen.terminalSize.columns - 10)) - 2
 
-            fun overlayTextAreaMaxWidth(screen: Screen): Int =
-                minOf(170, maxOf(40, screen.terminalSize.columns - 10)) - 2
-
-            fun overlayTextAreaMaxHeight(screen: Screen): Int =
-                (this.maxHeight + 3).coerceAtMost(screen.terminalSize.rows - 6)
-        }
-
+        fun overlayTextAreaMaxHeight(screen: Screen): Int =
+            (this.maxHeight + 3).coerceAtMost(screen.terminalSize.rows - 6)
     }
+}
+
+public enum class SelectionTarget { TAKE, DROP, EQUIP, UNEQUIP }
+public data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
+
+class LanternaUiAdapter(private val engine: GameEngine) {
+    private val keyMapper = LanternaKeyMapper()
 
     companion object {
         private const val MAX_MESSAGES = 10
         private const val MIN_WIDTH = 64
         private const val MIN_HEIGHT = 23
     }
-
-    private enum class SelectionTarget { TAKE, DROP, EQUIP, UNEQUIP }
-
-    private data class SelectionState(val target: SelectionTarget, val items: List<ItemView>)
 
     private data class LoopState(
         var history: MutableList<HistoryEntry>,
@@ -114,7 +112,9 @@ class LanternaUiAdapter(private val engine: GameEngine) {
     private fun gameLoop(screen: Screen, ref: GameRef, state: LoopState) {
         while (state.currentView.endGameMessage == null) {
             screen.doResizeIfNecessary()
-            val result = readInputKey(screen, state.currentView, state.selectionState, state.overlay)
+            val key = screen.readInput() ?: break
+
+            val result = keyMapper.mapKey(key, state.currentView, state.selectionState, state.overlay, screen.terminalSize.columns, screen.terminalSize.rows)
             state.selectionState = result.selectionState
             state.overlay = result.overlay
 
@@ -129,7 +129,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
                 }
                 is KeyAction.WaitSelection -> {
                     val sel = state.selectionState!!
-                    addMessage(state.history, buildSelectionPrompt(sel.target, sel.items), false)
+                    addMessage(state.history, UiUtils.buildSelectionPrompt(sel.target, sel.items), false)
                     render(screen, state.currentView, state.history, state.overlay)
                 }
                 is KeyAction.Event -> {
@@ -177,173 +177,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         }
         screen.doResizeIfNecessary()
         render(screen, state.currentView, state.history, state.overlay)
-    }
-
-    private sealed class KeyAction {
-        object Quit : KeyAction()
-        object Help : KeyAction()
-        object WaitSelection : KeyAction()
-        object NoOp : KeyAction()
-        data class Event(val event: InputEvent) : KeyAction()
-    }
-
-    private data class ReadInputResult(val action: KeyAction, val selectionState: SelectionState?, val overlay: Overlay)
-
-    private fun readInputKey(
-        screen: Screen,
-        view: ViewData,
-        selState: SelectionState?,
-        currentOverlay: Overlay
-    ): ReadInputResult {
-        val key = screen.readInput() ?: return ReadInputResult(KeyAction.Quit, null, currentOverlay)
-
-        if (selState != null) {
-            return handleSelectionDigit(key, selState, currentOverlay)
-        }
-
-        var nextOverlay = currentOverlay
-        var handledInOverlay: Boolean
-
-        when (currentOverlay) {
-            is Overlay.MessageViewer -> {
-                val ov = currentOverlay
-                val totalWrappedLines = countWrappedDisplayLines(ov.messages, ov.overlayTextAreaMaxWidth(screen))
-                val visibleRows = ov.overlayTextAreaMaxHeight(screen) - 3
-                val maxScroll = maxOf(0, totalWrappedLines - visibleRows + 3)
-                handledInOverlay = when (key.keyType) {
-                    KeyType.PageDown -> {
-                        nextOverlay = ov.copy(scrollOffset = minOf(maxScroll, ov.scrollOffset + maxOf(1, ov.overlayTextAreaMaxHeight(screen) - 2)))
-                        true
-                    }
-                    KeyType.ArrowDown -> {
-                        nextOverlay = ov.copy(scrollOffset = minOf(maxScroll, ov.scrollOffset + 1))
-                        true
-                    }
-                    KeyType.PageUp -> {
-                        nextOverlay = ov.copy(scrollOffset = maxOf(0, ov.scrollOffset - maxOf(1, ov.maxHeight - 2)))
-                        true
-                    }
-                    KeyType.ArrowUp -> {
-                        nextOverlay = ov.copy(scrollOffset = maxOf(0, ov.scrollOffset - 1))
-                        true
-                    }
-                    KeyType.ArrowLeft -> {
-                        if (ov.focusedIndex > 0)
-                            nextOverlay = ov.copy(focusedIndex = ov.focusedIndex - 1, scrollOffset = 0)
-                        true
-                    }
-                    KeyType.ArrowRight -> {
-                        if (ov.focusedIndex < ov.messages.size - 1)
-                            nextOverlay = ov.copy(focusedIndex = ov.focusedIndex + 1, scrollOffset = 0)
-                        true
-                    }
-                    KeyType.Escape -> {
-                        nextOverlay = Overlay.None
-                        true
-                    }
-                    else -> false
-                }
-            }
-            Overlay.None -> handledInOverlay = false
-        }
-
-        if (handledInOverlay) return ReadInputResult(KeyAction.NoOp, null, nextOverlay)
-
-        val displayOverlay = if (currentOverlay !is Overlay.None && key.keyType != KeyType.Escape) Overlay.None else currentOverlay
-
-        when (key.keyType) {
-            KeyType.Escape -> return if (currentOverlay !is Overlay.None) {
-                ReadInputResult(KeyAction.NoOp, null, Overlay.None)
-            } else {
-                ReadInputResult(KeyAction.Quit, null, currentOverlay)
-            }
-            KeyType.ArrowUp -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), null, displayOverlay)
-            KeyType.ArrowDown -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), null, displayOverlay)
-            KeyType.ArrowLeft -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), null, displayOverlay)
-            KeyType.ArrowRight -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), null, displayOverlay)
-            KeyType.Character -> {
-                when (key.character.lowercaseChar()) {
-                    'w' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), null, displayOverlay)
-                    'a' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), null, displayOverlay)
-                    's' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), null, displayOverlay)
-                    'd' -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), null, displayOverlay)
-                    'l' -> return ReadInputResult(KeyAction.Event(InputEvent.Look), null, displayOverlay)
-                    'u' -> return ReadInputResult(KeyAction.Event(InputEvent.Activate), null, displayOverlay)
-                    'g' -> {
-                        val candidates = view.areaItems
-                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null, displayOverlay)
-                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.TakeItem(candidates[0].name)), null, displayOverlay)
-                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.TAKE, candidates), displayOverlay)
-                    }
-                    'p' -> {
-                        val candidates = view.carriedItems + view.equippedItems
-                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null, displayOverlay)
-                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.DropItem(candidates[0].name)), null, displayOverlay)
-                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.DROP, candidates), displayOverlay)
-                    }
-                    'e' -> {
-                        val candidates = view.carriedItems
-                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null, displayOverlay)
-                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.EquipItem(candidates[0].name)), null, displayOverlay)
-                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.EQUIP, candidates), displayOverlay)
-                    }
-                    'r' -> {
-                        val candidates = view.equippedItems
-                        return if (candidates.isEmpty()) ReadInputResult(KeyAction.Help, null, displayOverlay)
-                        else if (candidates.size == 1) ReadInputResult(KeyAction.Event(InputEvent.UnequipItem(candidates[0].name)), null, displayOverlay)
-                        else ReadInputResult(KeyAction.WaitSelection, SelectionState(SelectionTarget.UNEQUIP, candidates), displayOverlay)
-                    }
-                    'i' -> return ReadInputResult(KeyAction.Event(InputEvent.Inventory), null, displayOverlay)
-                    'j' -> {
-                        val msgs = view.storyMessages.filter { it.isNotBlank() }
-                        return if (msgs.isEmpty()) ReadInputResult(KeyAction.Help, null, displayOverlay)
-                        else ReadInputResult(KeyAction.NoOp, null, Overlay.MessageViewer(msgs, focusedIndex = msgs.lastIndex))
-                    }
-                    'h' -> return ReadInputResult(KeyAction.NoOp, null, displayOverlay)
-                    'q' -> return ReadInputResult(KeyAction.Quit, null, displayOverlay)
-                }
-            }
-            else -> {}
-        }
-        return ReadInputResult(KeyAction.Help, null, currentOverlay)
-    }
-
-    private fun handleSelectionDigit(key: com.googlecode.lanterna.input.KeyStroke, selState: SelectionState, overlay: Overlay): ReadInputResult {
-        if (key.keyType == KeyType.Escape) return ReadInputResult(KeyAction.Help, null, overlay)
-        if (key.keyType != KeyType.Character) return ReadInputResult(KeyAction.WaitSelection, selState, overlay)
-        val idx = key.character.digitToIntOrNull() ?: return ReadInputResult(KeyAction.WaitSelection, selState, overlay)
-        val itemIdx = idx - 1
-        if (itemIdx < 0 || itemIdx >= selState.items.size) return ReadInputResult(KeyAction.Help, null, overlay)
-        val item = selState.items[itemIdx]
-        val event = when (selState.target) {
-            SelectionTarget.TAKE -> InputEvent.TakeItem(item.name)
-            SelectionTarget.DROP -> InputEvent.DropItem(item.name)
-            SelectionTarget.EQUIP -> InputEvent.EquipItem(item.name)
-            SelectionTarget.UNEQUIP -> InputEvent.UnequipItem(item.name)
-        }
-        return ReadInputResult(KeyAction.Event(event), null, overlay)
-    }
-
-    private fun countWrappedDisplayLines(messages: List<String>, lineWidth: Int): Int {
-        var total = 0
-        for (msg in messages) {
-            for (line in msg.split("\n")) {
-                val wrappedLines = wrapText(line, lineWidth)
-                total += wrappedLines.size
-            }
-        }
-        return total
-    }
-
-    private fun buildSelectionPrompt(target: SelectionTarget, items: List<ItemView>): String {
-        val verb = when (target) {
-            SelectionTarget.TAKE -> "Take"
-            SelectionTarget.DROP -> "Drop"
-            SelectionTarget.EQUIP -> "Equip"
-            SelectionTarget.UNEQUIP -> "Unequip"
-        }
-        val options = items.mapIndexed { i, it -> "[${i + 1}] ${it.name}" }.joinToString(" ")
-        return "$verb what? $options"
     }
 
     private fun addMessage(history: MutableList<HistoryEntry>, msg: String, isTrigger: Boolean) {
@@ -431,7 +264,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
                 }
                 rowIdx++
             } else {
-                for (line in wrapText(paragraph, textAreaWidth)) {
+                for (line in UiUtils.wrapText(paragraph, textAreaWidth)) {
                     if (rowIdx < overlay.scrollOffset) { rowIdx++; continue }
                     if (rowIdx >= overlay.scrollOffset + panelH - 3) break
                     val drawRow = contentTop + (rowIdx - overlay.scrollOffset)
@@ -443,7 +276,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             }
         }
 
-        val totalCount = countWrappedDisplayLines(listOf(focusedMsg), textAreaWidth)
+        val totalCount = UiUtils.countWrappedDisplayLines(listOf(focusedMsg), textAreaWidth)
         val canScrollUp = overlay.scrollOffset > 0
         val canScrollDown = (panelH - 3 > 0) && (overlay.scrollOffset + panelH - 3 < totalCount)
         g.putString(startCol, startRow + panelH - 1, buildString {
@@ -553,7 +386,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val lines = mutableListOf<Pair<String, Boolean>>()
         for (entry in history) {
             for (segment in entry.text.split("\n")) {
-                wrapText(segment, width).forEach { lines.add(it to entry.isTrigger) }
+                UiUtils.wrapText(segment, width).forEach { lines.add(it to entry.isTrigger) }
             }
         }
 
@@ -576,7 +409,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         width: Int,
         maxRows: Int
     ) {
-        val hpLine = buildHpBar(v, width)
+        val hpLine = UiUtils.buildHpBar(v, width)
         g.putString(top.column, top.row, hpLine.padEnd(width))
 
         val progLine = " Exp: ${v.exploredCount}/${v.totalAreas}   Dev: ${v.activatedCount}/${v.totalDevices}"
@@ -588,7 +421,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         for ((name, value) in statuses) {
             if (row >= top.row + maxRows) break
             val range = v.statusBounds[name]
-            g.putString(top.column, row, formatStatus(name, value, range, width).padEnd(width))
+            g.putString(top.column, row, UiUtils.formatStatus(name, value, range, width).padEnd(width))
             row++
         }
 
@@ -613,64 +446,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         g.foregroundColor = TextColor.ANSI.DEFAULT
     }
 
-    private fun buildHpBar(v: ViewData, width: Int): String {
-        val barLen = 10
-        val filled = ((v.health.toDouble() / v.maxHealth) * barLen).toInt().coerceIn(0, barLen)
-        val empty = barLen - filled
-
-        val bar = "█".repeat(filled) + "░".repeat(empty)
-        val textPart = "${v.health}/${v.maxHealth}"
-        return "$bar $textPart"
-    }
-
-    private fun formatStatus(name: String, value: Int, range: StatusRange?, width: Int): String {
-        val maxLen = width - 10
-        val displayValue = if (range != null && range.max != Int.MAX_VALUE) {
-            "$value/${range.max}"
-        } else {
-            "$value"
-        }
-        val template = ": $displayValue"
-        val nameMaxLen = maxOf(4, width - template.length)
-
-        val displayName = if (name.length > nameMaxLen) {
-            name.substring(0, nameMaxLen - 3) + "..."
-        } else {
-            name
-        }
-        return "$displayName$template"
-    }
-
-    private fun wrapText(text: String, width: Int): List<String> {
-        val words = text.split(" ")
-        val result = mutableListOf<String>()
-        var line = ""
-
-        for (word in words) {
-            if (word.length >= width) {
-                if (line.isNotEmpty()) result.add(line)
-                line = ""
-                var remaining = word
-                while (remaining.isNotEmpty()) {
-                    if (remaining.length <= width) {
-                        line += remaining
-                        remaining = ""
-                    } else {
-                        result.add(remaining.substring(0, width))
-                        remaining = remaining.substring(width)
-                    }
-                }
-            } else if ((line + " " + word).length <= width) {
-                line = if (line.isEmpty()) word else "$line $word"
-            } else {
-                if (line.isNotEmpty()) result.add(line)
-                line = word
-            }
-        }
-        if (line.isNotEmpty()) result.add(line)
-        return result.ifEmpty { listOf("") }
-    }
-
     private fun drawBottomBar(
         g: TextGraphics,
         view: ViewData,
@@ -683,10 +458,10 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         val sInfo = exits.getOrNull(2)
         val dInfo = exits.getOrNull(3)
 
-        val wLabel = exitLabel('w', wInfo)
-        val aLabel = exitLabel('a', aInfo)
-        val sLabel = exitLabel('s', sInfo)
-        val dLabel = exitLabel('d', dInfo)
+        val wLabel = UiUtils.exitLabel('w', wInfo)
+        val aLabel = UiUtils.exitLabel('a', aInfo)
+        val sLabel = UiUtils.exitLabel('s', sInfo)
+        val dLabel = UiUtils.exitLabel('d', dInfo)
 
         val gap = 2
         val contentWidth = aLabel.length + gap + sLabel.length + gap + dLabel.length
@@ -755,13 +530,6 @@ class LanternaUiAdapter(private val engine: GameEngine) {
 
         g.disableModifiers(SGR.BOLD)
     }
-
-    private fun exitLabel(key: Char, info: ExitInfo?): String =
-        if (info == null || info.name.isNullOrEmpty()) "[${key}]  ."
-        else {
-            val suffix = if (info.blocked) " (B)" else ""
-            "[${key}] ${info.name}$suffix"
-        }
 
     private fun drawSlot(g: TextGraphics, label: String, pos: TerminalPosition, active: Boolean, blocked: Boolean) {
         g.foregroundColor = when {
