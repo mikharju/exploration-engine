@@ -38,7 +38,10 @@ and uses page up and page down key functionality.
 - Qualified name use in files, for ex. ScenarioFile, ScenarioLoader
 - setStatus health confusion
 
-# Investigate sandbox sbx!!
+# Housekeeping
+
+- Replace lists with maps (areas, items), companion object method list calls, previous names to companion object and maps to be named like maps ie. areasById, itemsById
+- Investigate sandbox sbx!!
 
 # New time costs
 
