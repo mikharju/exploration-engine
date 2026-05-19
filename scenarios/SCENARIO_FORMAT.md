@@ -1,5 +1,8 @@
 # Scenario File Format — Exploration Engine
 
+Exploration engine is a small game system. Player can move between areas, explore devices in areas, carry items. Triggers
+may add reactions and story. This document describes how scenarios may be configured for the game via scenario files.
+
 A scenario is one or more JSON files: a **config** referencing data files (**areas**, **devices**, optionally **triggers**, **items**). Pass the config path as the first argument.
 
 ```bash
