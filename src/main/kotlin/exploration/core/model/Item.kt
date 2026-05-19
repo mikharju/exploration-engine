@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 data class ItemId(val name: String) {
     override fun toString(): String = name

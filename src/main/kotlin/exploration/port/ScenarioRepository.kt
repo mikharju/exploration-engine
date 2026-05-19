@@ -1,6 +1,6 @@
 package exploration.port
 
-import exploration.state.GameState
+import exploration.core.state.GameState
 
 interface ScenarioRepository {
     fun load(id: String): GameState

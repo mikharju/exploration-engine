@@ -1,5 +1,8 @@
 # Scenario File Format — Exploration Engine
 
+Exploration engine is a small game system. Player can move between areas, explore devices in areas, carry items. Triggers
+may add reactions and story. This document describes how scenarios may be configured for the game via scenario files.
+
 A scenario is one or more JSON files: a **config** referencing data files (**areas**, **devices**, optionally **triggers**, **items**). Pass the config path as the first argument.
 
 ```bash
@@ -68,8 +71,6 @@ JSON array of area objects. Each exit specifies a target area and direction (Nor
 ```
 
 Hidden exits do not appear in the UI at all. Triggers can reveal them using `showExit` or set their passability with `setExitBlocked`. Blocked exits still show but cannot be traversed.
-
-**Legacy format:** `connections: string[]` is still supported for backward compatibility. When used, directions are auto-assigned by alphabetical order of target area names (preserving previous behavior). New scenarios should use the explicit `exits` format.
 
 ## Devices (`devices.json`)
 
@@ -194,7 +195,7 @@ Each effect is an object with a `type` field plus type-specific fields.
 ## Validation & Rules
 
 Engine throws `IllegalArgumentException` on load if violated:
-- `startArea`, all `exits` (or legacy `connections`), and all `deviceId` references must exist
+- `startArea`, all `exits`, and all `deviceId` references must exist
 - Exit direction strings must be one of: North, West, South, East
 - File paths resolve relative to the config file directory (subdirs supported)
 - Status `min < max` for each defined status; `initial` must be within `[min, max]`

@@ -1,10 +1,10 @@
 package exploration.scenario
 
-import exploration.command.Command
-import exploration.command.processCommand
+import exploration.core.command.Command
+import exploration.core.command.processCommand
 import exploration.core.engine.fireAreaTriggers
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -27,21 +27,21 @@ class VisibleExitsTest {
             startArea = forest
         )
 
-        // All open and visible - Direction enum order: North, West, South, East
-        var state = GameState(world, Player(10, 20, forest))
-        assertEquals(listOf(Direction.North, Direction.East), state.visibleExits(forest))
+        // All open and visible - directions with exits that aren't hidden
+        val state = GameState(world, Player(10, 20, forest))
+        assertEquals(setOf(Direction.North, Direction.East), state.visibleExits(forest))
 
         // Block east exit (Forest -> Cave) - still visible but blocked for movement
         val blockedState = state.copy(exitStates = mapOf(ExitId(forest, cave) to ExitStateData(ExitState.BLOCKED)))
-        assertEquals(listOf(Direction.North, Direction.East), blockedState.visibleExits(forest))
+        assertEquals(setOf(Direction.North, Direction.East), blockedState.visibleExits(forest))
 
         // Hide north exit (Forest -> Tower) - East should still be visible
         val hiddenState = state.copy(exitStates = mapOf(ExitId(forest, tower) to ExitStateData(ExitState.OPEN, hidden = true)))
-        assertEquals(listOf(Direction.East), hiddenState.visibleExits(forest))
+        assertEquals(setOf(Direction.East), hiddenState.visibleExits(forest))
 
         // Block east AND hide north - only east visible (north is hidden even though open)
         val bothState = blockedState.copy(exitStates = blockedState.exitStates + (ExitId(forest, tower) to ExitStateData(ExitState.OPEN, hidden = true)))
-        assertEquals(listOf(Direction.East), bothState.visibleExits(forest))
+        assertEquals(setOf(Direction.East), bothState.visibleExits(forest))
     }
 
     @Test

@@ -1,10 +1,10 @@
-package exploration.command
+package exploration.core.command
 
 import exploration.core.engine.fireAreaTriggers
 import exploration.core.engine.fireDeviceTriggers
 import exploration.core.engine.fireStatusTriggers
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 
 fun processCommand(state: GameState, command: Command): GameState {
     if (state.endGameMessage != null && command !is Command.Look) {

@@ -1,12 +1,11 @@
 package exploration.integration
 
-import exploration.command.Command
-import exploration.command.processCommand
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.command.Command
+import exploration.core.command.processCommand
+import exploration.core.model.*
+import exploration.core.state.GameState
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue

@@ -1,4 +1,4 @@
-package exploration.model
+package exploration.core.model
 
 enum class OwnerType { AREA, DEVICE, STATUS }
 

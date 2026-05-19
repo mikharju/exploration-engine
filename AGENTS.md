@@ -60,7 +60,7 @@ See `scenarios/SCENARIO_FORMAT.md` for full JSON file format spec. Read it into 
 ## Game Rules
 
 - Commands: `look`, `move w/a/s/d` (indexed directions), `activate/use`, `take <item>`, `drop <item>`, `equip <item>`, `unequip <item>`, `inv` — case-insensitive
-- Win: visit all areas + activate all devices. Lose: health ≤ 0.
+- Game end: defined by triggers, no semantics for winning or losing, trigger may give farewell message which indicates either win or loss
 
 ---
 

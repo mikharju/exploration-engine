@@ -14,7 +14,7 @@ fun main(args: Array<String>) {
         ?: error("Usage: exploration-engine [--ui TEXT|KEY] <scenario-file>")
 
     val repo = JsonScenarioRepository()
-    val engine = GameEngineImpl(repo, InMemoryGameStateStore(repo))
+    val engine = GameEngineImpl(InMemoryGameStateStore(repo))
 
     when (mode) {
         UiMode.TEXT     -> TextUiAdapter(engine).run(scenarioPath)

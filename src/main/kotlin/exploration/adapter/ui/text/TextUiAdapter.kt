@@ -1,9 +1,7 @@
 package exploration.adapter.ui.text
 
-import exploration.port.GameEngine
-import exploration.port.GameRef
-import exploration.port.InputEvent
-import exploration.port.ViewData
+import exploration.core.model.Direction
+import exploration.port.*
 
 class TextUiAdapter(private val engine: GameEngine) {
 
@@ -63,23 +61,16 @@ class TextUiAdapter(private val engine: GameEngine) {
         val statusStr = if (v.statuses.isNotEmpty()) {
             " | ${v.statuses.entries.joinToString(" | ") { (k, n) -> "${k.replaceFirstChar { c -> c.uppercaseChar() }}: $n" }}"
         } else ""
-        val exitStr = if (v.exits.filterNotNull().isEmpty()) {
+
+        val exitStr = if (v.exits.values.all { it == null }) {
             "(none)"
         } else {
-            v.exits.mapIndexed { idx, info ->
-                val label = when (idx) {
-                    0 -> "[w] "
-                    1 -> "[a] "
-                    2 -> "[s] "
-                    3 -> "[d] "
-                    else -> "[$idx] "
-                }
-                if (info == null) label + ".".padStart(8)
-                else {
+            Direction.entries.mapNotNull { dir ->
+                v.exits[dir]?.let { info ->
                     val suffix = if (info.blocked) " (B)" else ""
-                    "${label}${info.name}$suffix".let { s -> s.padEnd(if (idx < 4) 10 else 6) }
+                    "[${dir.name[0]}] ${info.name}$suffix"
                 }
-            }.joinToString(" ").trim()
+            }.joinToString("  ").ifEmpty { "(none)" }
         }
 
         println("[HP: ${v.health}/${v.maxHealth} [$bar] | Exits: $exitStr]$statusStr")

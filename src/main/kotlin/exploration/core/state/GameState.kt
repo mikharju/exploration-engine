@@ -1,17 +1,18 @@
-package exploration.state
+package exploration.core.state
 
-import exploration.model.AreaId
-import exploration.model.Direction
-import exploration.model.ExitId
-import exploration.model.ExitStateData
-import exploration.model.DeviceId
-import exploration.model.Item
+import exploration.core.model.AreaId
+import exploration.core.model.Direction
+import exploration.core.model.ExitId
+import exploration.core.model.ExitState
+import exploration.core.model.ExitStateData
+import exploration.core.model.DeviceId
+import exploration.core.model.Item
 
-import exploration.model.Player
-import exploration.model.World
+import exploration.core.model.Player
+import exploration.core.model.World
 
-import exploration.model.StatusRange
-import exploration.model.Trigger
+import exploration.core.model.StatusRange
+import exploration.core.model.Trigger
 
 data class GameState(
     val world: World,
@@ -36,19 +37,19 @@ data class GameState(
         return devices
     }
 
-    fun visibleExits(currentArea: AreaId): List<Direction> {
-        val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction.index }
-        return Direction.values().filter { dir ->
-            val exit = exitsByDir[dir.index] ?: return@filter false
+    fun visibleExits(currentArea: AreaId): Set<Direction> {
+        val exitsByDir = world.getArea(currentArea).exits.associateBy { it.direction }
+        return Direction.entries.filter { dir ->
+            val exit = exitsByDir[dir] ?: return@filter false
             val id = ExitId(currentArea, exit.targetArea)
             val data = exitStates[id] ?: ExitStateData() // default: not hidden
             !data.hidden
-        }
+        }.toSet()
     }
 
     fun isExitBlocked(from: AreaId, to: AreaId): Boolean {
         val id = ExitId(from, to)
         val data = exitStates[id] ?: return false
-        return data.state != exploration.model.ExitState.OPEN || data.hidden
+        return data.state != ExitState.OPEN || data.hidden
     }
 }

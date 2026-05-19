@@ -1,8 +1,8 @@
 package exploration.scenario
 
 import exploration.core.engine.fireAreaTriggers
-import exploration.model.*
-import exploration.state.GameState
+import exploration.core.model.*
+import exploration.core.state.GameState
 
 fun assembleGame(
     config: ScenarioConfig,
@@ -54,20 +54,20 @@ fun assembleGame(
     return fireAreaTriggers(state, startId)
 }
 
-private fun buildInitialExitStates(areaEntries: List<AreaEntry>, areaIds: Set<String>): Map<exploration.model.ExitId, exploration.model.ExitStateData> {
-    val result = mutableMapOf<exploration.model.ExitId, exploration.model.ExitStateData>()
+private fun buildInitialExitStates(areaEntries: List<AreaEntry>, areaIds: Set<String>): Map<ExitId, ExitStateData> {
+    val result = mutableMapOf<ExitId, ExitStateData>()
     for (entry in areaEntries) {
         val from = AreaId(entry.id)
         if ((entry.exits ?: emptyList()).isNotEmpty()) {
             for (exitEntry in entry.exits!!) {
                 require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target: ${exitEntry.areaId}" }
                 val to = AreaId(exitEntry.areaId)
-                val id = exploration.model.ExitId(from, to)
+                val id = ExitId(from, to)
                 val state = when (exitEntry.initialState?.lowercase()) {
-                    "blocked" -> exploration.model.ExitState.BLOCKED
-                    else -> exploration.model.ExitState.OPEN  // default and any unknown value
+                    "blocked" -> ExitState.BLOCKED
+                    else -> ExitState.OPEN  // default and any unknown value
                 }
-                result[id] = exploration.model.ExitStateData(state, exitEntry.hidden)
+                result[id] = ExitStateData(state, exitEntry.hidden)
             }
         }
     }
@@ -89,19 +89,12 @@ private fun buildAreas(areaEntries: List<AreaEntry>, deviceMap: Map<DeviceId, De
         throw IllegalArgumentException("Area '${entry.id}' references unknown device: ${entry.deviceId}")
     }
 
-    val exits: Set<Exit> = if ((entry.exits ?: emptyList()).isNotEmpty()) {
-        (entry.exits ?: emptyList()).mapNotNull { exitEntry ->
-            require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target area: ${exitEntry.areaId}" }
-            val dir = Direction.parse(exitEntry.direction)
-                ?: error("Area '${entry.id}' has invalid direction '${exitEntry.direction}'. Must be one of North, West, South, East")
-            Exit(AreaId(exitEntry.areaId), dir)
-        }.toSet()
-    } else {
-        (entry.connections ?: emptyList()).mapNotNull { connName ->
-            require(connName in areaIds) { "Area '${entry.id}' connects to unknown area: $connName" }
-            AreaId(connName)
-        }.sortedBy { it.name }.mapIndexed { idx, areaId -> Exit(areaId, Direction.fromIndex(idx) ?: Direction.North) }.toSet()
-    }
+    val exits: Set<Exit> = (entry.exits ?: emptyList()).map { exitEntry ->
+        require(exitEntry.areaId in areaIds) { "Area '${entry.id}' references unknown exit target area: ${exitEntry.areaId}" }
+        val dir = Direction.parse(exitEntry.direction)
+            ?: error("Area '${entry.id}' has invalid direction '${exitEntry.direction}'. Must be one of North, West, South, East")
+        Exit(AreaId(exitEntry.areaId), dir)
+    }.toSet()
 
     AreaId(entry.id) to Area(
         id = AreaId(entry.id),
