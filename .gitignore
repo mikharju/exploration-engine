@@ -6,6 +6,7 @@ build/
 *.ipr
 *.iws
 .idea/
+.sbx/
 .DS_Store
 *.swp
 *~
