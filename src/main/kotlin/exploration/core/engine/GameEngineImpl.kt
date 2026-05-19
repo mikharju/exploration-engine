@@ -4,7 +4,6 @@ import exploration.core.command.Command
 import exploration.core.command.processCommand
 import exploration.core.model.Direction
 import exploration.core.model.ItemLocationType
-import exploration.core.model.LocationTarget
 import exploration.port.*
 import exploration.core.state.GameState
 
@@ -59,7 +58,7 @@ class GameEngineImpl(
             statusBounds = state.statusBounds,
             endGameMessage = state.endGameMessage,
             areaItems = state.items
-                .filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == area.id }
+                .filter { it.isInArea(area.id) }
                 .map { ItemView(it.id.name, it.description, it.locked) },
             carriedItems = buildItemViews(state, ItemLocationType.CARRIED),
             equippedItems = buildItemViews(state, ItemLocationType.EQUIPPED),

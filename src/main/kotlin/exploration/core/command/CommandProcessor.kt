@@ -124,12 +124,12 @@ private fun processLook(state: GameState): GameState {
         }
     } ?: ""
 
-    val roomItems = state.items.filter { it.location.type == ItemLocationType.AREA && (it.location.target as? LocationTarget.InArea)?.areaId == areaId }
+    val roomItems = state.items.filter { it.isInArea(areaId) }
     val itemText = if (roomItems.isNotEmpty()) {
         "\nYou see: ${roomItems.joinToString(", ") { it.id.name }}"
     } else ""
 
-    val equipped = state.items.filter { it.location.type == ItemLocationType.EQUIPPED }
+    val equipped = state.items.filter { it.isEquipped() }
     val equippedText = if (equipped.isNotEmpty()) {
         "\nEquipped: ${equipped.joinToString(", ") { it.id.name }}"
     } else ""
@@ -144,7 +144,7 @@ private fun runTake(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
         ?: return CmdResult(state.copy(commandOutput = "There's no item called '$itemName' here."), null, null, false)
 
-    if (item.location.type != ItemLocationType.AREA || (item.location.target as? LocationTarget.InArea)?.areaId != state.player.currentArea) {
+    if (!item.isInArea(state.player.currentArea)) {
         return CmdResult(state.copy(commandOutput = "That item isn't here."), null, null, false)
     }
 
@@ -165,27 +165,6 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
         ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
 
-    if (item.location.type == ItemLocationType.EQUIPPED) {
-        if (item.locked) {
-            return CmdResult(state.copy(commandOutput = "You can't drop the ${item.id.name} — it's locked."), null, null, false)
-        }
-        val newItems = state.items.map { i ->
-            if (i.id == item.id) i.copy(location = Location.area(state.player.currentArea)) else i
-        }
-
-        return CmdResult(
-            state.copy(
-                commandOutput = "You drop the ${item.id.name} (auto-unequipped).",
-                items = newItems
-            ),
-            null, null, false
-        )
-    }
-
-    if (item.location.type != ItemLocationType.CARRIED) {
-        return CmdResult(state.copy(commandOutput = "That item isn't in your inventory."), null, null, false)
-    }
-
     if (item.locked) {
         return CmdResult(state.copy(commandOutput = "You can't drop the ${item.id.name} — it's locked."), null, null, false)
     }
@@ -194,9 +173,15 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
         if (i.id == item.id) i.copy(location = Location.area(state.player.currentArea)) else i
     }
 
+    val message = when (item.location.type) {
+        ItemLocationType.EQUIPPED -> "You drop the ${item.id.name} (auto-unequipped)."
+        ItemLocationType.CARRIED -> "You drop the ${item.id.name}."
+        else -> return CmdResult(state.copy(commandOutput = "That item isn't in your inventory."), null, null, false)
+    }
+
     return CmdResult(
         state.copy(
-            commandOutput = "You drop the ${item.id.name}.",
+            commandOutput = message,
             items = newItems
         ),
         null, null, false
@@ -207,7 +192,7 @@ private fun runEquip(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
         ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
 
-    if (item.location.type != ItemLocationType.CARRIED) {
+    if (!item.isCarried()) {
         return CmdResult(state.copy(commandOutput = "That item isn't in your inventory."), null, null, false)
     }
 
@@ -232,7 +217,7 @@ private fun runUnequip(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
         ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
 
-    if (item.location.type != ItemLocationType.EQUIPPED) {
+    if (!item.isEquipped()) {
         return CmdResult(state.copy(commandOutput = "That item isn't equipped."), null, null, false)
     }
 
@@ -254,8 +239,8 @@ private fun runUnequip(state: GameState, itemName: String): CmdResult {
 }
 
 private fun processInventory(state: GameState): GameState {
-    val carried = state.items.filter { it.location.type == ItemLocationType.CARRIED }
-    val equipped = state.items.filter { it.location.type == ItemLocationType.EQUIPPED }
+    val carried = state.items.filter { it.isCarried() }
+    val equipped = state.items.filter { it.isEquipped() }
 
     val lines = mutableListOf<String>()
     lines.add("Inventory:")
