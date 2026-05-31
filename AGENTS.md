@@ -19,18 +19,21 @@ or deleted easily.
 
 ## Build & Run
 
+Each UI variant is an independent Gradle module with its own `installDist`:
+
 ```sh
-./gradlew build          # compile + test + jar
-./build/install/exploration-engine/bin/exploration-engine <scenario-file>  # TEXT UI
-./build/install/exploration-engine/bin/exploration-engine --ui KEY   <scenario-file>  # raw-key mode
-./build/install/exploration-engine/bin/exploration-engine --ui LANTERNA <scenario-file>  # TUI
+./gradlew :exploration-engine-ui-text:installDist   # TEXT mode (no extra deps)
+./gradlew :exploration-engine-ui-key:installDist    # KEY mode (jansi only)
+./gradlew :exploration-engine-ui-lanterna:installDist  # TUI mode (lanterna + jansi)
 ```
+
+Run: `./adapter-ui-text/build/install/exploration-engine-ui-text/bin/exploration-engine-ui-text <scenario-file>`
 
 JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
 ## Structure
 
-Single-module Gradle (Kotlin 2.3.21, JUnit 5). Entry: `exploration.cli.MainKt.main()`
+Multi-module Gradle (Kotlin 2.3.21, JUnit 5). Each UI variant has its own `Main.kt`.
 
 | Path | Contents |
 |---|---|
@@ -38,9 +41,15 @@ Single-module Gradle (Kotlin 2.3.21, JUnit 5). Entry: `exploration.cli.MainKt.ma
 | `core/state/` | Immutable GameState with win/lose check |
 | `core/command/` | Sealed Command (Look/Move/Activate/TakeItem/DropItem/EquipItem/UnequipItem/Inventory), processCommand |
 | `core/engine/` | GameEngineImpl, TriggerEngine |
-| `port/` | Interfaces: GameEngine, ScenarioRepository; types: InputEvent, ViewData |
-| `adapter/` | JSON loader (`jsonloader/`), UI adapters (`text/`, `key/`, `lanterna/`) |
-| `scenario/` | `ScenarioFile.kt` (JSON entries), `ScenarioLoader.kt` (assembleGame) |
+| `core/port/` | Interfaces: GameEngine, ScenarioRepository; types: InputEvent, ViewData |
+| `core/adapter/jsonloader/` | JsonScenarioRepository, JsonFileReader (scenario loading) |
+| `core/adapter/storage/` | InMemoryGameStateStore |
+| `core/scenario/` | `ScenarioFile.kt` (JSON entries), `ScenarioLoader.kt` (assembleGame) |
+| `adapter-ui-text/src/main/kotlin/exploration/cli/Main.kt` | TextUiAdapter entry point |
+| `adapter-ui-key/src/main/kotlin/exploration/cli/Main.kt` | KeyUiAdapter entry point |
+| `adapter-ui-lanterna/src/main/kotlin/exploration/cli/Main.kt` | LanternaUiAdapter entry point |
+
+App module (`app/`) contains shared utilities (InMemoryGameStateStore, JsonScenarioRepository moved to core) and test resources. Each adapter-ui-* module is independently buildable with its own `MainKt`.
 
 ## Scenario Format
 
