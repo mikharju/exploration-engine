@@ -399,7 +399,7 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         width: Int,
         maxRows: Int
     ) {
-        val hpLine = UiUtils.buildHpBar(v, width)
+        val hpLine = UiUtils.buildHpBar(v)
         g.putString(top.column, top.row, hpLine.padEnd(width))
 
         val progLine = " Exp: ${v.exploredCount}/${v.totalAreas}   Dev: ${v.activatedCount}/${v.totalDevices}"

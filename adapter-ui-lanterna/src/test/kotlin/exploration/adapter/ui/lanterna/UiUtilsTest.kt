@@ -37,13 +37,13 @@ class UiUtilsTest {
     @Test
     fun `buildHpBar renders health bar with clamping`() {
         val full = fullViewData().copy(health = 10, maxHealth = 10)
-        assertEquals("██████████ 10/10", UiUtils.buildHpBar(full, 8))
+        assertEquals("██████████ 10/10", UiUtils.buildHpBar(full))
 
         val half = full.copy(health = 5)
-        assertEquals("█████░░░░░ 5/10", UiUtils.buildHpBar(half, 8))
+        assertEquals("█████░░░░░ 5/10", UiUtils.buildHpBar(half))
 
         val over = full.copy(health = 20, maxHealth = 10)
-        assertEquals("██████████ 20/10", UiUtils.buildHpBar(over, 8))
+        assertEquals("██████████ 20/10", UiUtils.buildHpBar(over))
     }
 
     @Test
