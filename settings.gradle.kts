@@ -12,5 +12,8 @@ project(":adapter-ui-key").name = "exploration-engine-ui-key"
 include("adapter-ui-lanterna")
 project(":adapter-ui-lanterna").name = "exploration-engine-ui-lanterna"
 
+include("adapter-ui-libgdx")
+project(":adapter-ui-libgdx").name = "exploration-engine-ui-libgdx"
+
 include("app")
 project(":app").name = "exploration-engine"

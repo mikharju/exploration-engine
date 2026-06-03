@@ -1,5 +1,6 @@
 #!/bin/bash
 
-# ./build/install/exploration-engine/bin/exploration-engine --ui LANTERNA scenarios/default/default.json
-./gradlew :exploration-engine-ui-lanterna:installDist
-./adapter-ui-lanterna/build/install/exploration-engine-ui-lanterna/bin/exploration-engine-ui-lanterna scenarios/default/default.json
+./gradlew :exploration-engine-ui-libgdx:installDist -q
+BIN="./adapter-ui-libgdx/build/install/exploration-engine-ui-libgdx/bin/exploration-engine-ui-libgdx"
+chmod +x "$BIN" 2>/dev/null || true
+exec "$BIN" scenarios/default/default.json

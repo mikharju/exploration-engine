@@ -19,7 +19,7 @@ dependencies {
         }
         "lanterna" -> {
             implementation(project(":exploration-engine-ui-lanterna"))
-            implementation("com.googlecode.lanterna:lanterna:3.1.2")
+            implementation("com.googlecode.lantern:lanterna:3.1.2")
         }
         else -> {
             implementation(project(":exploration-engine-ui-text"))

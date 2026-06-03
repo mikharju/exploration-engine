@@ -1,0 +1,220 @@
+package exploration.adapter.ui.libgdx
+
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.InputMultiplexer
+import com.badlogic.gdx.Screen
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.utils.viewport.FitViewport
+import exploration.port.GameEngine
+import exploration.port.InputEvent
+import exploration.model.Direction
+
+class GameScreen(
+    private val engine: GameEngine,
+    private val scenarioPath: String
+) : Screen {
+
+    companion object {
+        const val VIEWPORT_W = 1600f
+        const val VIEWPORT_H = 900f
+        const val BOTTOM_BAR_HEIGHT = 130f
+        const val MARGIN = 20f
+        const val MESSAGE_PANEL_WIDTH_RATIO = 0.58f
+        const val PANEL_GAP = 30f
+    }
+
+    private var gameRef: exploration.port.GameRef? = null
+    private var viewData: exploration.port.ViewData? = null
+    private var overlayState: OverlayState.State = OverlayState.State.Playing
+
+    private val camera: OrthographicCamera = OrthographicCamera()
+    private val viewport: FitViewport = FitViewport(VIEWPORT_W, VIEWPORT_H, camera)
+    private val stage: Stage = Stage(viewport)
+    private val batch: SpriteBatch = SpriteBatch()
+    private val shapeRenderer: ShapeRenderer = ShapeRenderer()
+
+    private val inputProcessor = object : InputProcessor {
+        override fun keyDown(keycode: Int): Boolean {
+            val vd = viewData ?: return false
+            var event = when (keycode) {
+                com.badlogic.gdx.Input.Keys.UP -> InputEvent.MoveDirection(Direction.North)
+                com.badlogic.gdx.Input.Keys.LEFT -> InputEvent.MoveDirection(Direction.West)
+                com.badlogic.gdx.Input.Keys.DOWN -> InputEvent.MoveDirection(Direction.South)
+                com.badlogic.gdx.Input.Keys.RIGHT -> InputEvent.MoveDirection(Direction.East)
+                'W'.code -> InputEvent.MoveDirection(Direction.North)
+                'A'.code -> InputEvent.MoveDirection(Direction.West)
+                'S'.code -> InputEvent.MoveDirection(Direction.South)
+                'D'.code -> InputEvent.MoveDirection(Direction.East)
+                com.badlogic.gdx.Input.Keys.L -> InputEvent.Look
+                com.badlogic.gdx.Input.Keys.U -> InputEvent.Activate
+                com.badlogic.gdx.Input.Keys.I -> InputEvent.Inventory
+                else -> null
+            }
+
+            if (event == null && keycode >= com.badlogic.gdx.Input.Keys.A && keycode <= com.badlogic.gdx.Input.Keys.Z) {
+                val letter = ('a' + (keycode - com.badlogic.gdx.Input.Keys.A)).toChar()
+                event = handleItemAction(letter, vd)
+            } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
+                val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0 + 1).toString()[0]
+                event = handleDigitSelection(digit, vd)
+            }
+
+            if (event != null && gameRef != null) {
+                viewData = engine.tick(gameRef!!, event)
+                checkGameOver(viewData!!)
+            }
+            return true
+        }
+
+        override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+            val vd = viewData ?: return false
+            val worldPos = camera.unproject(com.badlogic.gdx.math.Vector3(screenX.toFloat(), screenY.toFloat(), 0f))
+
+            var event = InputMapper.mapTouchDirection(worldPos.x, worldPos.y, vd)
+            if (event != null && gameRef != null) {
+                viewData = engine.tick(gameRef!!, event)
+                checkGameOver(viewData!!)
+                return true
+            }
+
+            val actionResult = InputMapper.mapTouchItem(worldPos.x, worldPos.y, vd)
+            actionResult?.let { result ->
+                val inputEvent = when (result) {
+                    is ItemActionResult.Take -> InputEvent.TakeItem(result.itemName)
+                    is ItemActionResult.Drop -> InputEvent.DropItem(result.itemName)
+                    is ItemActionResult.Equip -> InputEvent.EquipItem(result.itemName)
+                    is ItemActionResult.Unequip -> InputEvent.UnequipItem(result.itemName)
+                }
+                if (gameRef != null) {
+                    viewData = engine.tick(gameRef!!, inputEvent)
+                    checkGameOver(viewData!!)
+                }
+            }
+
+            return true
+        }
+
+        override fun keyUp(keycode: Int): Boolean = false
+        override fun keyTyped(character: Char): Boolean = false
+        override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
+        override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean = false
+        override fun mouseMoved(screenX: Int, screenY: Int): Boolean = false
+        override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
+        override fun scrolled(amountX: Float, amountY: Float): Boolean = false
+    }
+
+    init {
+        viewData = engine.start(scenarioPath).also { gameRef = it }
+            .let { engine.tick(it, InputEvent.Look) }
+        Gdx.input.setInputProcessor(InputMultiplexer(stage, inputProcessor))
+    }
+
+    override fun show() {
+        camera.position.set(VIEWPORT_W / 2f, VIEWPORT_H / 2f, 0f)
+    }
+
+    private fun handleItemAction(key: Char, vd: exploration.port.ViewData): InputEvent? {
+        return when (key.lowercaseChar()) {
+            'g' -> handleTake(vd)
+            'p' -> handleDrop(vd)
+            'e' -> handleEquip(vd)
+            'r' -> handleUnequip(vd)
+            else -> null
+        }
+    }
+
+    private fun handleDigitSelection(digit: Char, vd: exploration.port.ViewData): InputEvent? {
+        return null
+    }
+
+    private fun handleTake(vd: exploration.port.ViewData): InputEvent? {
+        val candidates = vd.areaItems.filterNot { it.locked }
+        return when {
+            candidates.isEmpty() -> null
+            candidates.size == 1 -> InputEvent.TakeItem(candidates[0].name)
+            else -> null
+        }
+    }
+
+    private fun handleDrop(vd: exploration.port.ViewData): InputEvent? {
+        val candidates = vd.carriedItems + vd.equippedItems
+        return when {
+            candidates.isEmpty() -> null
+            candidates.size == 1 -> InputEvent.DropItem(candidates[0].name)
+            else -> null
+        }
+    }
+
+    private fun handleEquip(vd: exploration.port.ViewData): InputEvent? {
+        val candidates = vd.carriedItems.filterNot { it.locked }
+        return when {
+            candidates.isEmpty() -> null
+            candidates.size == 1 -> InputEvent.EquipItem(candidates[0].name)
+            else -> null
+        }
+    }
+
+    private fun handleUnequip(vd: exploration.port.ViewData): InputEvent? {
+        val candidates = vd.equippedItems
+        return when {
+            candidates.isEmpty() -> null
+            candidates.size == 1 -> InputEvent.UnequipItem(candidates[0].name)
+            else -> null
+        }
+    }
+
+    override fun render(delta: Float) {
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+
+        viewport.apply()
+
+        stage.act(delta)
+        stage.draw()
+
+        renderGameContent()
+    }
+
+    private fun checkGameOver(vd: exploration.port.ViewData) {
+        if (vd.endGameMessage != null) {
+            overlayState = OverlayState.State.GameOver
+        }
+    }
+
+    private fun renderGameContent() {
+        val vd = viewData ?: return
+        when (overlayState) {
+            OverlayState.State.Playing -> renderer.render(vd)
+            OverlayState.State.Inventory, OverlayState.State.StoryViewer ->
+                renderer.renderWithOverlay(vd, overlayState.name)
+            OverlayState.State.GameOver -> vd.endGameMessage?.let { msg ->
+                renderer.renderGameOver(msg)
+            } ?: renderer.render(vd)
+        }
+    }
+
+    private val renderer: Renderer by lazy {
+        Renderer(batch, shapeRenderer, camera, VIEWPORT_W, VIEWPORT_H)
+    }
+
+    override fun resize(width: Int, height: Int) {
+        viewport.update(width, height, true)
+        camera.position.set(VIEWPORT_W / 2f, VIEWPORT_H / 2f, 0f)
+    }
+
+    override fun pause() {}
+    override fun resume() {}
+    override fun hide() {}
+
+    override fun dispose() {
+        batch.dispose()
+        shapeRenderer.dispose()
+        stage.dispose()
+        renderer.dispose()
+    }
+}
