@@ -3,7 +3,6 @@ package exploration.adapter.ui.lanterna
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.input.KeyType
 import exploration.port.InputEvent
-import exploration.port.ItemView
 import exploration.port.ViewData
 
 interface KeyMapper {
@@ -97,15 +96,15 @@ class LanternaKeyMapper : KeyMapper {
         displayOverlay: Overlay
     ): ReadInputResult {
         return when (key.keyType) {
-            KeyType.Escape -> return if (displayOverlay !is Overlay.None) {
+            KeyType.Escape -> if (displayOverlay !is Overlay.None) {
                 ReadInputResult(KeyAction.NoOp, null, Overlay.None)
             } else {
                 ReadInputResult(KeyAction.Quit, null, displayOverlay)
             }
-            KeyType.ArrowUp -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), selState, displayOverlay)
-            KeyType.ArrowDown -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), selState, displayOverlay)
-            KeyType.ArrowLeft -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), selState, displayOverlay)
-            KeyType.ArrowRight -> return ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), selState, displayOverlay)
+            KeyType.ArrowUp -> ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), selState, displayOverlay)
+            KeyType.ArrowDown -> ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.South)), selState, displayOverlay)
+            KeyType.ArrowLeft -> ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.West)), selState, displayOverlay)
+            KeyType.ArrowRight -> ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.East)), selState, displayOverlay)
             KeyType.Character -> {
                 when (key.character.lowercaseChar()) {
                     'w' -> ReadInputResult(KeyAction.Event(InputEvent.MoveDirection(InputEvent.Direction.North)), null, displayOverlay)
