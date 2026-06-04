@@ -4,25 +4,11 @@ import exploration.port.ItemView
 
 /** Types used across the libGDX adapter modules. */
 
-interface HistoryEntry {
-    val text: String
-}
-
-data class OverlayState(
-    override val text: String = "",
-    val state: State,
-    val message: String? = null,
-    val selectionItems: List<ItemView>? = null,
-    val selectionTarget: SelectionTarget? = null,
-    var stories: List<String> = emptyList()
-) : HistoryEntry {
-    
-    enum class State {
-        Playing,
-        Inventory,
-        StoryViewer,
-        GameOver
-    }
+enum class OverlayState {
+    Playing,
+    Inventory,
+    StoryViewer,
+    GameOver
 }
 
 sealed interface SelectionTarget {

@@ -222,7 +222,7 @@ class Renderer(
             val segments = text.split("\n")
             for (segment in segments) {
                 if (segment.isBlank()) {
-                    y += font.lineHeight * 1.3f
+                    y += font.lineHeight * 0.5f
                     continue
                 }
                 val wrappedLines = splitText(segment, maxChars)

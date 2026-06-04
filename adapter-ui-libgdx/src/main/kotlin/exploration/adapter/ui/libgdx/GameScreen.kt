@@ -34,7 +34,7 @@ class GameScreen(
 
     private var gameRef: exploration.port.GameRef? = null
     private var viewData: exploration.port.ViewData? = null
-    private var overlayState: OverlayState.State = OverlayState.State.Playing
+    private var overlayState: OverlayState = OverlayState.Playing
     private var selectionState: SelectionState = SelectionState.inactive()
     private var storedStoryCount: Int = 0
     private var pendingStories: List<String> = emptyList()
@@ -70,7 +70,7 @@ class GameScreen(
             if (event == null && keycode == com.badlogic.gdx.Input.Keys.J) {
                 val allStories = vd.storyMessages.filter { it.isNotBlank() }
                 if (allStories.isNotEmpty()) {
-                    overlayState = OverlayState.State.StoryViewer
+                    overlayState = OverlayState.StoryViewer
                     pendingStories = allStories
                 }
             }
@@ -83,8 +83,8 @@ class GameScreen(
                 event = handleDigitSelection(digit, vd)
             } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE) {
                 when (overlayState) {
-                    OverlayState.State.StoryViewer -> {
-                        overlayState = OverlayState.State.Playing
+                    OverlayState.StoryViewer -> {
+                        overlayState = OverlayState.Playing
                         pendingStories = emptyList()
                     }
                     else -> closeSelection()
@@ -96,7 +96,7 @@ class GameScreen(
                 checkGameOver(viewData!!)
                 val vd = viewData!!
                 if (vd.storyMessages.size > storedStoryCount) {
-                    overlayState = OverlayState.State.StoryViewer
+                    overlayState = OverlayState.StoryViewer
                     pendingStories = vd.storyMessages.drop(storedStoryCount).filter { it.isNotBlank() }
                 }
                 storedStoryCount = vd.storyMessages.size
@@ -161,7 +161,7 @@ class GameScreen(
             is InputMapper.ItemAction.Message -> null
             is InputMapper.ItemAction.Selection -> {
                 selectionState = SelectionState(true, action.target, action.items)
-                overlayState = OverlayState.State.Inventory
+                overlayState = OverlayState.Inventory
                 null
             }
         }
@@ -191,7 +191,7 @@ class GameScreen(
 
     private fun closeSelection() {
         selectionState = SelectionState.inactive()
-        overlayState = OverlayState.State.Playing
+        overlayState = OverlayState.Playing
     }
 
     override fun render(delta: Float) {
@@ -211,14 +211,14 @@ class GameScreen(
 
     private fun checkGameOver(vd: exploration.port.ViewData) {
         if (vd.endGameMessage != null) {
-            overlayState = OverlayState.State.GameOver
+            overlayState = OverlayState.GameOver
         }
     }
 
     private fun updateStoryOverlay() {
         val vd = viewData ?: return
         if (vd.storyMessages.size > storedStoryCount) {
-            overlayState = OverlayState.State.StoryViewer
+            overlayState = OverlayState.StoryViewer
         }
         storedStoryCount = vd.storyMessages.size
     }
@@ -226,12 +226,12 @@ class GameScreen(
     private fun renderGameContent() {
         val vd = viewData ?: return
         when (overlayState) {
-            OverlayState.State.Playing -> renderer.render(vd, selectionState)
-            OverlayState.State.Inventory ->
+            OverlayState.Playing -> renderer.render(vd, selectionState)
+            OverlayState.Inventory ->
                 renderer.renderWithOverlay(vd, overlayState.name, selectionState)
-            OverlayState.State.StoryViewer ->
+            OverlayState.StoryViewer ->
                 renderer.renderStoryViewer(viewData!!, pendingStories, selectionState)
-            OverlayState.State.GameOver -> vd.endGameMessage?.let { msg ->
+            OverlayState.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
             } ?: renderer.render(vd, selectionState)
         }
