@@ -32,6 +32,8 @@ class GameScreen(
     private var viewData: exploration.port.ViewData? = null
     private var overlayState: OverlayState.State = OverlayState.State.Playing
     private var selectionState: SelectionState = SelectionState.inactive()
+    private var storedStoryCount: Int = 0
+    private var pendingStories: List<String> = emptyList()
 
     private val camera: OrthographicCamera = OrthographicCamera()
     private val viewport: FitViewport = FitViewport(VIEWPORT_W, VIEWPORT_H, camera)
@@ -77,19 +79,39 @@ class GameScreen(
                 else -> null
             }
 
+            if (event == null && keycode == com.badlogic.gdx.Input.Keys.J) {
+                val allStories = vd.storyMessages.filter { it.isNotBlank() }
+                if (allStories.isNotEmpty()) {
+                    overlayState = OverlayState.State.StoryViewer
+                    pendingStories = allStories
+                }
+            }
+
             if (event == null && keycode >= com.badlogic.gdx.Input.Keys.A && keycode <= com.badlogic.gdx.Input.Keys.Z) {
                 val letter = ('a' + (keycode - com.badlogic.gdx.Input.Keys.A)).toChar()
                 event = handleItemAction(letter, vd)
             } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
                 val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0).toString()[0]
                 event = handleDigitSelection(digit, vd)
-            } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE && selectionState.active) {
-                closeSelection()
+            } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE) {
+                when (overlayState) {
+                    OverlayState.State.StoryViewer -> {
+                        overlayState = OverlayState.State.Playing
+                        pendingStories = emptyList()
+                    }
+                    else -> closeSelection()
+                }
             }
 
             if (event != null && gameRef != null) {
                 viewData = engine.tick(gameRef!!, event)
                 checkGameOver(viewData!!)
+                val vd = viewData!!
+                if (vd.storyMessages.size > storedStoryCount) {
+                    overlayState = OverlayState.State.StoryViewer
+                    pendingStories = vd.storyMessages.drop(storedStoryCount).filter { it.isNotBlank() }
+                }
+                storedStoryCount = vd.storyMessages.size
             }
             return true
         }
@@ -102,6 +124,7 @@ class GameScreen(
             if (event != null && gameRef != null) {
                 viewData = engine.tick(gameRef!!, event)
                 checkGameOver(viewData!!)
+                updateStoryOverlay()
                 return true
             }
 
@@ -116,6 +139,7 @@ class GameScreen(
                 if (gameRef != null) {
                     viewData = engine.tick(gameRef!!, inputEvent)
                     checkGameOver(viewData!!)
+                    updateStoryOverlay()
                 }
             }
 
@@ -134,6 +158,7 @@ class GameScreen(
     init {
         viewData = engine.start(scenarioPath).also { gameRef = it }
             .let { engine.tick(it, InputEvent.Look) }
+        storedStoryCount = viewData!!.storyMessages.size
         Gdx.input.setInputProcessor(InputMultiplexer(stage, inputProcessor))
     }
 
@@ -251,12 +276,22 @@ class GameScreen(
         }
     }
 
+    private fun updateStoryOverlay() {
+        val vd = viewData ?: return
+        if (vd.storyMessages.size > storedStoryCount) {
+            overlayState = OverlayState.State.StoryViewer
+        }
+        storedStoryCount = vd.storyMessages.size
+    }
+
     private fun renderGameContent() {
         val vd = viewData ?: return
         when (overlayState) {
             OverlayState.State.Playing -> renderer.render(vd, selectionState)
-            OverlayState.State.Inventory, OverlayState.State.StoryViewer ->
+            OverlayState.State.Inventory ->
                 renderer.renderWithOverlay(vd, overlayState.name, selectionState)
+            OverlayState.State.StoryViewer ->
+                renderer.renderStoryViewer(viewData!!, pendingStories, selectionState)
             OverlayState.State.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
             } ?: renderer.render(vd, selectionState)

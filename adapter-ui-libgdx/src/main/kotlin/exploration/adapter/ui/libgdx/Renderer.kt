@@ -99,6 +99,48 @@ class Renderer(
         render(withTrigger, selectionState)
     }
 
+    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive()) {
+        batch.setProjectionMatrix(camera.combined)
+        shapeRenderer.setProjectionMatrix(camera.combined)
+        drawBackgroundPass()
+
+        val boxW = 700f; val boxH = 500f
+        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
+        shapeRenderer.end()
+
+        batch.begin()
+        font.color = TEXT_HIGHLIGHT
+        val title = " Story Messages"
+        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - MARGIN)
+
+        var storyY = y + boxH * 0.75f
+        val maxWidthPx = (boxW - MARGIN * 2).toInt()
+        val maxCharsPerLine = if (maxWidthPx > 0) {
+            val testStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            val testWidth = textWidth(testStr)
+            ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
+        } else 40
+        for ((i, story) in stories.withIndex()) {
+            if (story.isBlank()) continue
+            font.color = TEXT_WHITE
+            val prefix = "${i + 1}. "
+            val wrappedLines = splitText(prefix + story, maxCharsPerLine)
+            for (line in wrappedLines) {
+                if (storyY < y + MARGIN + font.lineHeight) break
+                font.draw(batch, line, x + MARGIN, storyY)
+                storyY -= font.lineHeight * 1.3f
+            }
+        }
+
+        font.color = TEXT_DIM
+        val hint = "Press ESC to close"
+        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + MARGIN)
+        batch.end()
+    }
+
     fun renderGameOver(message: String) {
         drawBackgroundPass()
 
@@ -149,8 +191,7 @@ class Renderer(
         for (trigger in triggers.reversed()) {
             allItems.add(trigger to TEXT_WHITE)
         }
-        for ((i, story) in stories.reversed().withIndex()) {
-            if (triggers.isNotEmpty() && i == 0) continue
+        for (story in stories.reversed()) {
             allItems.add(story to TEXT_DIM)
         }
 

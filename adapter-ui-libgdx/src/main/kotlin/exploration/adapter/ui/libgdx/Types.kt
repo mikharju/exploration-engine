@@ -13,7 +13,8 @@ data class OverlayState(
     val state: State,
     val message: String? = null,
     val selectionItems: List<ItemView>? = null,
-    val selectionTarget: SelectionTarget? = null
+    val selectionTarget: SelectionTarget? = null,
+    var stories: List<String> = emptyList()
 ) : HistoryEntry {
     
     enum class State {
