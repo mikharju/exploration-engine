@@ -36,7 +36,7 @@ class Renderer(
         const val MARGIN = 40f
         const val PANEL_PADDING = 20f
         const val STATUS_BAR_WIDTH = 180f
-        const val BOTTOM_BAR_HEIGHT = 130f
+        const val BOTTOM_BAR_HEIGHT = 180f
         const val DIRECTION_BTN_SIZE = 70f
     }
 
@@ -284,17 +284,22 @@ class Renderer(
         val centerX = viewportW / 2; val buttonY = barY + DIRECTION_BTN_SIZE / 2 + 10f
         val radius = DIRECTION_BTN_SIZE / 2; val spacing = DIRECTION_BTN_SIZE * 1.3f
 
-        for ((dir, btnCenter) in listOf(
-            Direction.North to (centerX - spacing * 1.5f),
-            Direction.West to (centerX - spacing * 0.5f),
-            Direction.South to (centerX + spacing * 0.5f),
-            Direction.East to (centerX + spacing * 1.5f)
-        )) {
+        // WASD-style layout: W above, S/A/D on same row
+        val southRowY = buttonY
+        val northY = buttonY + spacing * 0.9f
+        val buttonPositions = listOf(
+            Direction.North to (centerX to (northY)),
+            Direction.West to ((centerX - spacing) to (southRowY)),
+            Direction.South to (centerX to (southRowY)),
+            Direction.East to ((centerX + spacing) to (southRowY))
+        )
+
+        for ((dir, pos) in buttonPositions) {
             val exitInfo = exits[dir]; val locked = exitInfo == null || exitInfo.blocked
-            shapeRenderer.setColor(if (locked) BUTTON_LOCKED else BUTTON_BG); shapeRenderer.circle(btnCenter, buttonY, radius)
+            shapeRenderer.setColor(if (locked) BUTTON_LOCKED else BUTTON_BG); shapeRenderer.circle(pos.first, pos.second, radius)
             if (!locked) {
                 shapeRenderer.end(); shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-                shapeRenderer.setColor(BORDER_COLOR); shapeRenderer.circle(btnCenter, buttonY, radius)
+                shapeRenderer.setColor(BORDER_COLOR); shapeRenderer.circle(pos.first, pos.second, radius)
                 shapeRenderer.end(); shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
             }
         }
@@ -305,19 +310,14 @@ class Renderer(
         val hintText = "g: Take | p: Drop | e: Equip | r: Unequip"
         font.draw(batch, hintText, viewportW / 2f - textWidth(hintText) / 2f, barH - 15f)
 
-        for ((dir, btnCenter) in listOf(
-            Direction.North to (centerX - spacing * 1.5f),
-            Direction.West to (centerX - spacing * 0.5f),
-            Direction.South to (centerX + spacing * 0.5f),
-            Direction.East to (centerX + spacing * 1.5f)
-        )) {
+        for ((dir, pos) in buttonPositions) {
             val exitInfo = exits[dir]; val locked = exitInfo == null || exitInfo.blocked
             font.color = if (locked) Color(0.3f, 0.25f, 0.25f, 1f) else TEXT_WHITE
             val arrow = when(dir) { Direction.North -> "^"; Direction.South -> "v"; Direction.West -> "<"; Direction.East -> ">"; else -> "?" }
             val lockText = if (locked && exitInfo != null) "$arrow [LOCKED]" else arrow
-            font.draw(batch, lockText, btnCenter - textWidth(lockText) / 2f, buttonY + font.lineHeight * 0.3f)
+            font.draw(batch, lockText, pos.first - textWidth(lockText) / 2f, pos.second + font.lineHeight * 0.3f)
             if (!locked && exitInfo != null && !exitInfo.name.isNullOrBlank()) {
-                val name = exitInfo.name!!.take(12); font.color = TEXT_DIM; font.draw(batch, name, btnCenter - textWidth(name) / 2f, buttonY + radius + 5f)
+                val name = exitInfo.name!!.take(12); font.color = TEXT_DIM; font.draw(batch, name, pos.first - textWidth(name) / 2f, pos.second + radius + 5f)
             }
         }
 

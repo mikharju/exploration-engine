@@ -80,31 +80,25 @@ object InputMapper {
     }
 
     fun mapTouchDirection(x: Float, y: Float, viewData: ViewData): InputEvent? {
-        // Bottom bar Y position (in viewport coords)
-        val bottomBarTop = GameScreen.VIEWPORT_H - GameScreen.BOTTOM_BAR_HEIGHT - GameScreen.MARGIN
-        val buttonRadius = 35f
         val centerX = GameScreen.VIEWPORT_W / 2f
-        val GAP = 60f
 
-        // Direction positions relative to center (W=above, S=same level, A left, D right)
+        // WASD-style layout: W above, S/A/D on same row (matching Renderer)
+        val buttonY = GameScreen.DIRECTION_BTN_SIZE / 2f + 10f
+        val spacing = GameScreen.DIRECTION_BTN_SIZE * 1.3f
+        val southRowY = buttonY
+        val northY = buttonY + spacing * 0.9f
         val directions: List<Pair<Direction, Pair<Float, Float>>> = listOf(
-            Direction.North to (centerX to (bottomBarTop - GAP)),
-            Direction.West to ((centerX - GAP * 2f) to (bottomBarTop - GAP / 2)),
-            Direction.South to (centerX to (bottomBarTop + GAP / 3)),
-            Direction.East to ((centerX + GAP * 2f) to (bottomBarTop - GAP / 2))
+            Direction.North to (centerX to (northY)),
+            Direction.West to ((centerX - spacing) to (southRowY)),
+            Direction.South to (centerX to (southRowY)),
+            Direction.East to ((centerX + spacing) to (southRowY))
         )
 
         for ((dir, pos) in directions) {
             val exitInfo = viewData.exits[dir] ?: continue
-            if (!exitInfo.blocked && isCircleHit(pos.first, pos.second, x, y, buttonRadius)) {
+            if (!exitInfo.blocked && isCircleHit(pos.first, pos.second, x, y, 35f)) {
                 return InputEvent.MoveDirection(dir)
             }
-        }
-
-        // Also check 's' direction at same row as south
-        val sInfo = viewData.exits[Direction.South]
-        if (sInfo != null && !sInfo.blocked && isCircleHit(centerX, bottomBarTop + GAP / 3, x, y, buttonRadius)) {
-            return InputEvent.MoveDirection(Direction.South)
         }
 
         return null

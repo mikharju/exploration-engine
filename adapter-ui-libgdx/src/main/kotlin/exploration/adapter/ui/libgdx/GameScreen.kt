@@ -22,10 +22,11 @@ class GameScreen(
     companion object {
         const val VIEWPORT_W = 1800f
         const val VIEWPORT_H = 1100f
-        const val BOTTOM_BAR_HEIGHT = 130f
+        const val BOTTOM_BAR_HEIGHT = 180f
         const val MARGIN = 20f
         const val MESSAGE_PANEL_WIDTH_RATIO = 0.58f
         const val PANEL_GAP = 30f
+        const val DIRECTION_BTN_SIZE = 70f
     }
 
     private var gameRef: exploration.port.GameRef? = null
