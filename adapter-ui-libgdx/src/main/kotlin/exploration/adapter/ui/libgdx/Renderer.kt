@@ -62,7 +62,7 @@ class Renderer(
 
         batch.begin()
         font.draw(batch, "WASD/Arrows: Move | L: Look | U: Activate | I: Inventory", 20f, viewportH - 15f)
-        if (viewData.currentAreaName != null && viewData.areaItems.isNotEmpty()) {
+        if (viewData.areaItems.isNotEmpty()) {
             val itemsStr = viewData.areaItems.joinToString(", ") { it.name }
             font.draw(batch, "Items here: $itemsStr", 20f, viewportH / 2 + 60f)
         }
@@ -264,7 +264,7 @@ class Renderer(
         y -= font.lineHeight * 0.7f
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        val barX = (panelX + PANEL_PADDING + textWidth(hpLabel).toInt() + 10).toFloat()
+        val barX = panelX + PANEL_PADDING + textWidth(hpLabel) + 10
         shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH, 8f)
         shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH * healthPct, 8f)
         shapeRenderer.end()
@@ -338,10 +338,10 @@ class Renderer(
         for ((dir, pos) in buttonPositions) {
             val exitInfo = exits[dir]; val locked = exitInfo == null || exitInfo.blocked
             font.color = if (locked) Color(0.3f, 0.25f, 0.25f, 1f) else TEXT_WHITE
-            val arrow = when(dir) { Direction.North -> "^"; Direction.South -> "v"; Direction.West -> "<"; Direction.East -> ">"; else -> "?" }
+            val arrow = when(dir) { Direction.North -> "^"; Direction.South -> "v"; Direction.West -> "<"; Direction.East -> ">" }
             val lockText = if (locked && exitInfo != null) "$arrow [LOCKED]" else arrow
             font.draw(batch, lockText, pos.first - textWidth(lockText) / 2f, pos.second + font.lineHeight * 0.3f)
-            if (!locked && exitInfo != null && !exitInfo.name.isNullOrBlank()) {
+            if (!locked && exitInfo?.name?.isNotBlank() == true) {
                 val name = exitInfo.name!!.take(12); font.color = TEXT_DIM; font.draw(batch, name, pos.first - textWidth(name) / 2f, pos.second + radius + 5f)
             }
         }
@@ -349,7 +349,7 @@ class Renderer(
         if (areaItems.isNotEmpty()) {
             var itemX = MARGIN; val itemY = barH * 0.5f; font.color = TEXT_HIGHLIGHT
             for ((i, item) in areaItems.withIndex()) if (!item.locked) {
-                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label).toInt() + 20
+                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label) + 20
             }
         }
         batch.end()

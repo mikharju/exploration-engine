@@ -79,7 +79,7 @@ class GameScreen(
                 val letter = ('a' + (keycode - com.badlogic.gdx.Input.Keys.A)).toChar()
                 event = handleItemAction(letter, vd)
             } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
-                val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0).toString()[0]
+                val digit = ('0' + (keycode - com.badlogic.gdx.Input.Keys.NUM_0)).toChar()
                 event = handleDigitSelection(digit, vd)
             } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE) {
                 when (overlayState) {
@@ -170,7 +170,7 @@ class GameScreen(
     private fun handleDigitSelection(digit: Char, vd: exploration.port.ViewData): InputEvent? {
         if (!selectionState.active) return null
 
-        val index = (digit - '1').toInt()
+        val index = digit - '1'
         if (index < 0 || index >= selectionState.items.size) {
             closeSelection()
             return null
@@ -257,6 +257,7 @@ class GameScreen(
         renderer.dispose()
     }
 
+    @Suppress("DEPRECATION")
     private fun saveScreenshot() {
         val screenshotDir = Gdx.files.local("screenshots")
         if (!screenshotDir.exists()) screenshotDir.mkdirs()
