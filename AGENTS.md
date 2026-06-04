@@ -25,9 +25,12 @@ Each UI variant is an independent Gradle module with its own `installDist`:
 ./gradlew :exploration-engine-ui-text:installDist   # TEXT mode (no extra deps)
 ./gradlew :exploration-engine-ui-key:installDist    # KEY mode (jansi only)
 ./gradlew :exploration-engine-ui-lanterna:installDist  # TUI mode (lanterna + jansi)
+./gradlew :adapter-ui-libgdx:assemble               # Desktop GUI mode (libGDX + LWJGL3)
 ```
 
 Run: `./adapter-ui-text/build/install/exploration-engine-ui-text/bin/exploration-engine-ui-text <scenario-file>`
+
+LibGDX desktop app: `./adapter-ui-libgdx/build/libs/adapter-ui-libgdx.jar <scenario-file>` (1800×1100 windowed mode)
 
 JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
@@ -48,6 +51,7 @@ Multi-module Gradle (Kotlin 2.3.21, JUnit 5). Each UI variant has its own `Main.
 | `adapter-ui-text/src/main/kotlin/exploration/cli/Main.kt` | TextUiAdapter entry point |
 | `adapter-ui-key/src/main/kotlin/exploration/cli/Main.kt` | KeyUiAdapter entry point |
 | `adapter-ui-lanterna/src/main/kotlin/exploration/cli/Main.kt` | LanternaUiAdapter entry point |
+| `adapter-ui-libgdx/` | Desktop GUI (libGDX + LWJGL3, 1800×1100) — `LibgdxUiAdapter`, `GameScreen`, `InputMapper`, `Renderer`, components |
 
 App module (`app/`) contains shared utilities (InMemoryGameStateStore, JsonScenarioRepository moved to core) and test resources. Each adapter-ui-* module is independently buildable with its own `MainKt`.
 
