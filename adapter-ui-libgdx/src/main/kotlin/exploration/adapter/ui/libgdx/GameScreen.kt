@@ -20,8 +20,8 @@ class GameScreen(
 ) : Screen {
 
     companion object {
-        const val VIEWPORT_W = 1600f
-        const val VIEWPORT_H = 900f
+        const val VIEWPORT_W = 1800f
+        const val VIEWPORT_H = 1100f
         const val BOTTOM_BAR_HEIGHT = 130f
         const val MARGIN = 20f
         const val MESSAGE_PANEL_WIDTH_RATIO = 0.58f
@@ -31,6 +31,7 @@ class GameScreen(
     private var gameRef: exploration.port.GameRef? = null
     private var viewData: exploration.port.ViewData? = null
     private var overlayState: OverlayState.State = OverlayState.State.Playing
+    private var selectionState: SelectionState = SelectionState.inactive()
 
     private val camera: OrthographicCamera = OrthographicCamera()
     private val viewport: FitViewport = FitViewport(VIEWPORT_W, VIEWPORT_H, camera)
@@ -82,6 +83,8 @@ class GameScreen(
             } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
                 val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0 + 1).toString()[0]
                 event = handleDigitSelection(digit, vd)
+            } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE && selectionState.active) {
+                closeSelection()
             }
 
             if (event != null && gameRef != null) {
@@ -149,7 +152,27 @@ class GameScreen(
     }
 
     private fun handleDigitSelection(digit: Char, vd: exploration.port.ViewData): InputEvent? {
-        return null
+        if (!selectionState.active) return null
+
+        val index = (digit - '1').toInt()
+        if (index < 0 || index >= selectionState.items.size) {
+            closeSelection()
+            return null
+        }
+
+        val selectedItem = selectionState.items[index]
+        val event = when (selectionState.target) {
+            SelectionTarget.UNEQUIP -> InputEvent.UnequipItem(selectedItem.name)
+            else -> null
+        }
+
+        closeSelection()
+        return event
+    }
+
+    private fun closeSelection() {
+        selectionState = SelectionState.inactive()
+        overlayState = OverlayState.State.Playing
     }
 
     private fun handleTake(vd: exploration.port.ViewData): InputEvent? {
@@ -184,7 +207,11 @@ class GameScreen(
         return when {
             candidates.isEmpty() -> null
             candidates.size == 1 -> InputEvent.UnequipItem(candidates[0].name)
-            else -> null
+            else -> {
+                selectionState = SelectionState.forUnequip(candidates)
+                overlayState = OverlayState.State.Inventory
+                null
+            }
         }
     }
 
@@ -212,12 +239,12 @@ class GameScreen(
     private fun renderGameContent() {
         val vd = viewData ?: return
         when (overlayState) {
-            OverlayState.State.Playing -> renderer.render(vd)
+            OverlayState.State.Playing -> renderer.render(vd, selectionState)
             OverlayState.State.Inventory, OverlayState.State.StoryViewer ->
-                renderer.renderWithOverlay(vd, overlayState.name)
+                renderer.renderWithOverlay(vd, overlayState.name, selectionState)
             OverlayState.State.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
-            } ?: renderer.render(vd)
+            } ?: renderer.render(vd, selectionState)
         }
     }
 

@@ -19,5 +19,6 @@ fun main(args: Array<String>) {
 
     val config = Lwjgl3ApplicationConfiguration()
     config.setTitle("Exploration Engine")
+    config.setWindowedMode(1800, 1100)
     Lwjgl3Application(LibgdxUiAdapter(engine, path), config)
 }

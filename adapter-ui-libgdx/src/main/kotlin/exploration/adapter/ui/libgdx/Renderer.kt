@@ -50,7 +50,7 @@ class Renderer(
     private val layout = GlyphLayout()
     private fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
 
-    fun render(viewData: ViewData) {
+    fun render(viewData: ViewData, selectionState: SelectionState = SelectionState.inactive()) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
@@ -66,16 +66,35 @@ class Renderer(
             val itemsStr = viewData.areaItems.joinToString(", ") { it.name }
             font.draw(batch, "Items here: $itemsStr", 20f, viewportH / 2 + 60f)
         }
+
+        if (selectionState.active && selectionState.target != null) {
+            val prompt = when (selectionState.target) {
+                SelectionTarget.UNEQUIP -> "Unequip which item? (1-${selectionState.items.size})"
+                else -> ""
+            }
+            font.color = TEXT_HIGHLIGHT
+            font.draw(batch, prompt, viewportW / 2f - textWidth(prompt) / 2f, viewportH * 0.65f)
+
+            val startY = viewportH * 0.55f
+            for ((i, item) in selectionState.items.withIndex()) {
+                val y = startY - i * font.lineHeight * 1.4f
+                if (y < BOTTOM_BAR_HEIGHT + 20f) break
+                val label = "${i + 1}. ${item.name}"
+                font.color = TEXT_WHITE
+                font.draw(batch, label, viewportW / 2f - textWidth(label) / 2f, y)
+            }
+        }
+
         batch.end()
 
         viewData.endGameMessage?.let { drawGameOverOverlay(it) }
     }
 
-    fun renderWithOverlay(viewData: ViewData, overlayName: String) {
+    fun renderWithOverlay(viewData: ViewData, overlayName: String, selectionState: SelectionState = SelectionState.inactive()) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         val withTrigger = viewData.copy(triggerTexts = listOf("[${overlayName}]"))
-        render(withTrigger)
+        render(withTrigger, selectionState)
     }
 
     fun renderGameOver(message: String) {
