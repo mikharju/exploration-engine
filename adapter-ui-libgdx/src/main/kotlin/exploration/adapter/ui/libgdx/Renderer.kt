@@ -220,7 +220,7 @@ class Renderer(
             if (y > maxY) break
             font.color = color
             val segments = text.split("\n")
-            for ((segIdx, segment) in segments.withIndex()) {
+            for (segment in segments) {
                 if (segment.isBlank()) {
                     y += font.lineHeight * 1.3f
                     continue

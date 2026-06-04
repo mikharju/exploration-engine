@@ -155,12 +155,15 @@ class GameScreen(
     }
 
     private fun handleItemAction(key: Char, vd: exploration.port.ViewData): InputEvent? {
-        return when (key.lowercaseChar()) {
-            'g' -> handleTake(vd)
-            'p' -> handleDrop(vd)
-            'e' -> handleEquip(vd)
-            'r' -> handleUnequip(vd)
-            else -> null
+        val action = InputMapper.handleItemKey(key, vd) ?: return null
+        return when (action) {
+            is InputMapper.ItemAction.Event -> action.event
+            is InputMapper.ItemAction.Message -> null
+            is InputMapper.ItemAction.Selection -> {
+                selectionState = SelectionState(true, action.target, action.items)
+                overlayState = OverlayState.State.Inventory
+                null
+            }
         }
     }
 
@@ -189,58 +192,6 @@ class GameScreen(
     private fun closeSelection() {
         selectionState = SelectionState.inactive()
         overlayState = OverlayState.State.Playing
-    }
-
-    private fun handleTake(vd: exploration.port.ViewData): InputEvent? {
-        val candidates = vd.areaItems.filterNot { it.locked }
-        return when {
-            candidates.isEmpty() -> null
-            candidates.size == 1 -> InputEvent.TakeItem(candidates[0].name)
-            else -> {
-                selectionState = SelectionState.forTake(candidates)
-                overlayState = OverlayState.State.Inventory
-                null
-            }
-        }
-    }
-
-    private fun handleDrop(vd: exploration.port.ViewData): InputEvent? {
-        val candidates = vd.carriedItems + vd.equippedItems
-        return when {
-            candidates.isEmpty() -> null
-            candidates.size == 1 -> InputEvent.DropItem(candidates[0].name)
-            else -> {
-                selectionState = SelectionState.forDrop(candidates)
-                overlayState = OverlayState.State.Inventory
-                null
-            }
-        }
-    }
-
-    private fun handleEquip(vd: exploration.port.ViewData): InputEvent? {
-        val candidates = vd.carriedItems.filterNot { it.locked }
-        return when {
-            candidates.isEmpty() -> null
-            candidates.size == 1 -> InputEvent.EquipItem(candidates[0].name)
-            else -> {
-                selectionState = SelectionState.forEquip(candidates)
-                overlayState = OverlayState.State.Inventory
-                null
-            }
-        }
-    }
-
-    private fun handleUnequip(vd: exploration.port.ViewData): InputEvent? {
-        val candidates = vd.equippedItems
-        return when {
-            candidates.isEmpty() -> null
-            candidates.size == 1 -> InputEvent.UnequipItem(candidates[0].name)
-            else -> {
-                selectionState = SelectionState.forUnequip(candidates)
-                overlayState = OverlayState.State.Inventory
-                null
-            }
-        }
     }
 
     override fun render(delta: Float) {
