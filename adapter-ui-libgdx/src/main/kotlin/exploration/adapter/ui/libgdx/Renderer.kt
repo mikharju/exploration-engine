@@ -123,7 +123,10 @@ class Renderer(
             val testWidth = textWidth(testStr)
             ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
         } else 40
-        for ((i, story) in stories.withIndex()) {
+
+        val maxStoriesToShow = 50
+        val storiesToRender = if (stories.size > maxStoriesToShow) stories.takeLast(maxStoriesToShow) else stories
+        for ((i, story) in storiesToRender.withIndex()) {
             if (story.isBlank()) continue
             font.color = TEXT_WHITE
             val prefix = "${i + 1}. "
@@ -187,11 +190,16 @@ class Renderer(
             y -= font.lineHeight * 1.3f
         }
 
+        val maxMessages = 50
+        val allTriggers = if (triggers.size > maxMessages / 2) triggers.takeLast(maxMessages / 2) else triggers
+        val remainingSlots = maxMessages - allTriggers.size
+        val allStories = if (stories.size > remainingSlots) stories.takeLast(remainingSlots) else stories
+
         val allItems = mutableListOf<Pair<String, Color>>()
-        for (trigger in triggers.reversed()) {
+        for (trigger in allTriggers.reversed()) {
             allItems.add(trigger to TEXT_WHITE)
         }
-        for (story in stories.reversed()) {
+        for (story in allStories.reversed()) {
             allItems.add(story to TEXT_DIM)
         }
 
