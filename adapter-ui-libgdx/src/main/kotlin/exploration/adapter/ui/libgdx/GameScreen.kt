@@ -40,6 +40,26 @@ class GameScreen(
 
     private val inputProcessor = object : InputProcessor {
         override fun keyDown(keycode: Int): Boolean {
+            if (keycode == com.badlogic.gdx.Input.Keys.F12) {
+                Gdx.app.log("Debug", "=== DEBUG STATE ===")
+                viewData?.let { vd ->
+                    Gdx.app.log("Debug", "Area: ${vd.currentAreaName}")
+                    Gdx.app.log("Debug", "HP: ${vd.health}/${vd.maxHealth}")
+                    Gdx.app.log("Debug", "Triggers count: ${vd.triggerTexts.size}")
+                    Gdx.app.log("Debug", "Stories count: ${vd.storyMessages.size}")
+                    Gdx.app.log("Debug", "Area items: ${vd.areaItems.size} (locked=${vd.areaItems.any { it.locked }})")
+                    Gdx.app.log("Debug", "Carried items: ${vd.carriedItems.size}")
+                    Gdx.app.log("Debug", "Equipped items: ${vd.equippedItems.size}")
+                    Gdx.app.log("Debug", "End game: ${vd.endGameMessage != null}")
+                    vd.triggerTexts.take(3).forEachIndexed { i, t ->
+                        Gdx.app.log("Debug", "  Trigger[$i]: '$t'")
+                    }
+                    vd.storyMessages.take(3).forEachIndexed { i, s ->
+                        Gdx.app.log("Debug", "  Story[$i]: '$s'")
+                    }
+                } ?: Gdx.app.log("Debug", "viewData is null")
+                return true
+            }
             val vd = viewData ?: return false
             var event = when (keycode) {
                 com.badlogic.gdx.Input.Keys.UP -> InputEvent.MoveDirection(Direction.North)
@@ -169,6 +189,9 @@ class GameScreen(
     }
 
     override fun render(delta: Float) {
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST)
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 

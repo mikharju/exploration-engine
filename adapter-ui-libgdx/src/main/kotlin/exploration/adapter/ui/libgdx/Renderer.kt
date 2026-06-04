@@ -1,5 +1,6 @@
 package exploration.adapter.ui.libgdx
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -39,7 +40,11 @@ class Renderer(
         const val DIRECTION_BTN_SIZE = 70f
     }
 
-    private val font: BitmapFont = BitmapFont()
+    private val font: BitmapFont = try {
+        BitmapFont(Gdx.files.internal("com/badlogic/gdx/utils/lsans-15.fnt"))
+    } catch (e: Exception) {
+        BitmapFont()
+    }
     init { font.color = TEXT_WHITE }
 
     private val layout = GlyphLayout()
@@ -102,44 +107,57 @@ class Renderer(
     }
 
     private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?) {
-        val panelX = MARGIN; val panelY = viewportH - MARGIN - BOTTOM_BAR_HEIGHT + PANEL_PADDING * 2
-        val panelW = viewportW / 2.5f; val panelH = BOTTOM_BAR_HEIGHT - PANEL_PADDING * 4
+        val panelX = MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
+        val panelTopY = panelBottomY - (viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4) + PANEL_PADDING * 2
+        val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelY, panelW, panelH)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)
         shapeRenderer.end()
 
         batch.begin()
-        var y = panelY + PANEL_PADDING * 2 - font.lineHeight / 2
+        var y = panelBottomY - font.lineHeight / 2
+        val minY = panelTopY + PANEL_PADDING
+
         if (areaName != null && areaName.isNotBlank()) {
             font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + PANEL_PADDING, y)
-        }
-        for (trigger in triggers.reversed()) {
             y -= font.lineHeight * 1.3f
-            if (y < panelY + PANEL_PADDING) break
-            font.color = TEXT_WHITE; font.draw(batch, trigger.take((panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)), panelX + PANEL_PADDING, y)
+        }
+
+        val allItems = mutableListOf<Pair<String, Color>>()
+        for (trigger in triggers.reversed()) {
+            allItems.add(trigger to TEXT_WHITE)
         }
         for ((i, story) in stories.reversed().withIndex()) {
             if (triggers.isNotEmpty() && i == 0) continue
-            font.color = TEXT_DIM; font.draw(batch, ">> ${story.take((panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1))}", panelX + PANEL_PADDING, y)
+            allItems.add(story to TEXT_DIM)
+        }
+
+        val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
+        for ((text, color) in allItems) {
+            if (y < minY) break
+            font.color = color; font.draw(batch, text.take(maxChars), panelX + PANEL_PADDING, y)
             y -= font.lineHeight * 1.3f
         }
+
         if (triggers.isEmpty() && stories.isEmpty()) {
-            y += font.lineHeight * 0.5f; font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, y)
+            if (y > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, y) }
         }
         batch.end()
     }
 
     private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<ItemView>, carriedItems: List<ItemView>, equippedItems: List<ItemView>) {
         val panelX = MARGIN + viewportW / 2.5f + MARGIN * 0.8f
-        val panelY = viewportH - MARGIN - BOTTOM_BAR_HEIGHT + PANEL_PADDING * 2
-        val panelW = viewportW / 3f; val panelH = BOTTOM_BAR_HEIGHT - PANEL_PADDING * 4
+        val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
+        val panelTopY = panelBottomY - (viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4) + PANEL_PADDING * 2
+        val panelW = viewportW / 3f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelY, panelW, panelH)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)
         shapeRenderer.end()
 
-        var y = panelY + PANEL_PADDING * 2 - font.lineHeight / 2
+        var y = panelBottomY - font.lineHeight / 2
+        val minY = panelTopY + PANEL_PADDING
         val healthPct = if (maxHealth > 0) health.toFloat() / maxHealth else 0f
         val hpColor = when { healthPct > 0.6f -> HP_GREEN; healthPct > 0.3f -> HP_YELLOW; else -> HP_RED }
 
@@ -148,15 +166,15 @@ class Renderer(
         val hpLabel = "HP: $health/$maxHealth"
         font.draw(batch, hpLabel, panelX + PANEL_PADDING, y)
         batch.end()
+        y -= font.lineHeight * 0.7f
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         val barX = (panelX + PANEL_PADDING + textWidth(hpLabel).toInt() + 10).toFloat()
-        val barY = y - font.lineHeight * 0.7f
-        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, barY, STATUS_BAR_WIDTH, 8f)
-        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, barY, STATUS_BAR_WIDTH * healthPct, 8f)
+        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH, 8f)
+        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH * healthPct, 8f)
         shapeRenderer.end()
 
-        y -= font.lineHeight * 5f
+        y -= font.lineHeight * 2f
 
         batch.begin()
         font.color = TEXT_DIM; font.draw(batch, "Explored: $exploredCount/$totalAreas | Devices: $activatedCount/$totalDevices", panelX + PANEL_PADDING, y)
@@ -167,7 +185,7 @@ class Renderer(
             font.draw(batch, "Carried:", panelX + PANEL_PADDING, y)
             for ((i, item) in carriedItems.withIndex()) {
                 y -= font.lineHeight * 1.3f
-                if (y < panelY + PANEL_PADDING) break
+                if (y < minY) break
                 font.color = if (item.locked) TEXT_DIM else TEXT_WHITE
                 val lockedStr = if (item.locked) " [locked]" else ""
                 font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + PANEL_PADDING, y)
@@ -175,9 +193,11 @@ class Renderer(
         }
 
         if (equippedItems.isNotEmpty()) {
+            y -= font.lineHeight * 2f
+            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Equipped:", panelX + PANEL_PADDING, y)
             for ((i, item) in equippedItems.withIndex()) {
                 y -= font.lineHeight * 1.3f
-                if (y < panelY + PANEL_PADDING || carriedItems.isEmpty()) break
+                if (y < minY) break
                 font.color = TEXT_HIGHLIGHT; val lockedStr = if (item.locked) " [locked]" else ""
                 font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + PANEL_PADDING, y)
             }
