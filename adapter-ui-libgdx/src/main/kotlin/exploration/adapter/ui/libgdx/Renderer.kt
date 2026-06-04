@@ -108,7 +108,7 @@ class Renderer(
         val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
+        shapeRenderer.setColor(Color(PANEL_BG.r, PANEL_BG.g, PANEL_BG.b, 1f)); shapeRenderer.rect(x, y, boxW, boxH)
         shapeRenderer.end()
 
         batch.begin()
@@ -129,13 +129,24 @@ class Renderer(
         for ((i, story) in storiesToRender.withIndex()) {
             if (story.isBlank()) continue
             font.color = TEXT_WHITE
-            val prefix = "${i + 1}. "
-            val wrappedLines = splitText(prefix + story, maxCharsPerLine)
-            for (line in wrappedLines) {
-                if (storyY < y + MARGIN + font.lineHeight) break
-                font.draw(batch, line, x + MARGIN, storyY)
-                storyY -= font.lineHeight * 1.3f
+            val segments = story.split("\n")
+            var isFirstSegment = true
+            for (segment in segments) {
+                if (segment.isBlank()) {
+                    storyY -= font.lineHeight * 0.5f
+                    isFirstSegment = false
+                    continue
+                }
+                val wrappedLines = splitText(segment, maxCharsPerLine)
+                for ((lineIdx, line) in wrappedLines.withIndex()) {
+                    if (storyY < y + MARGIN + font.lineHeight) break
+                    val displayLine = if (isFirstSegment && lineIdx == 0) "${i + 1}. $line" else line
+                    font.draw(batch, displayLine, x + MARGIN, storyY)
+                    storyY -= font.lineHeight * 1.3f
+                }
+                isFirstSegment = false
             }
+            storyY -= font.lineHeight * 0.5f
         }
 
         font.color = TEXT_DIM
@@ -182,13 +193,6 @@ class Renderer(
         shapeRenderer.end()
 
         batch.begin()
-        var y = panelBottomY - font.lineHeight / 2
-        val minY = panelTopY + PANEL_PADDING
-
-        if (areaName != null && areaName.isNotBlank()) {
-            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + PANEL_PADDING, y)
-            y -= font.lineHeight * 1.3f
-        }
 
         val maxMessages = 50
         val allTriggers = if (triggers.size > maxMessages / 2) triggers.takeLast(maxMessages / 2) else triggers
@@ -203,15 +207,36 @@ class Renderer(
             allItems.add(story to TEXT_DIM)
         }
 
+        val areaLabelY = panelBottomY - font.lineHeight / 2
+        if (areaName != null && areaName.isNotBlank()) {
+            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + PANEL_PADDING, areaLabelY)
+        }
+
+        var y = panelTopY + PANEL_PADDING
+        val maxY = if (areaName != null && areaName.isNotBlank()) areaLabelY - font.lineHeight * 1.3f else panelBottomY - font.lineHeight / 2
+
         val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
         for ((text, color) in allItems) {
-            if (y < minY) break
-            font.color = color; font.draw(batch, text.take(maxChars), panelX + PANEL_PADDING, y)
-            y -= font.lineHeight * 1.3f
+            if (y > maxY) break
+            font.color = color
+            val segments = text.split("\n")
+            for ((segIdx, segment) in segments.withIndex()) {
+                if (segment.isBlank()) {
+                    y += font.lineHeight * 1.3f
+                    continue
+                }
+                val wrappedLines = splitText(segment, maxChars)
+                for (line in wrappedLines) {
+                    if (y > maxY) break
+                    font.draw(batch, line, panelX + PANEL_PADDING, y)
+                    y += font.lineHeight * 1.3f
+                }
+            }
         }
 
         if (triggers.isEmpty() && stories.isEmpty()) {
-            if (y > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, y) }
+            val hintY = panelTopY + PANEL_PADDING
+            if (hintY < maxY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
         }
         batch.end()
     }
