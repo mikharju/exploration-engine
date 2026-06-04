@@ -70,7 +70,9 @@ class Renderer(
         if (selectionState.active && selectionState.target != null) {
             val prompt = when (selectionState.target) {
                 SelectionTarget.UNEQUIP -> "Unequip which item? (1-${selectionState.items.size})"
-                else -> ""
+                SelectionTarget.DROP -> "Drop which item? (1-${selectionState.items.size})"
+                SelectionTarget.TAKE -> "Take which item? (1-${selectionState.items.size})"
+                SelectionTarget.EQUIP -> "Equip which item? (1-${selectionState.items.size})"
             }
             font.color = TEXT_HIGHLIGHT
             font.draw(batch, prompt, viewportW / 2f - textWidth(prompt) / 2f, viewportH * 0.65f)

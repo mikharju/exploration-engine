@@ -81,7 +81,7 @@ class GameScreen(
                 val letter = ('a' + (keycode - com.badlogic.gdx.Input.Keys.A)).toChar()
                 event = handleItemAction(letter, vd)
             } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
-                val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0 + 1).toString()[0]
+                val digit = (keycode - com.badlogic.gdx.Input.Keys.NUM_0).toString()[0]
                 event = handleDigitSelection(digit, vd)
             } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE && selectionState.active) {
                 closeSelection()
@@ -163,6 +163,9 @@ class GameScreen(
         val selectedItem = selectionState.items[index]
         val event = when (selectionState.target) {
             SelectionTarget.UNEQUIP -> InputEvent.UnequipItem(selectedItem.name)
+            SelectionTarget.DROP -> InputEvent.DropItem(selectedItem.name)
+            SelectionTarget.TAKE -> InputEvent.TakeItem(selectedItem.name)
+            SelectionTarget.EQUIP -> InputEvent.EquipItem(selectedItem.name)
             else -> null
         }
 
@@ -180,7 +183,11 @@ class GameScreen(
         return when {
             candidates.isEmpty() -> null
             candidates.size == 1 -> InputEvent.TakeItem(candidates[0].name)
-            else -> null
+            else -> {
+                selectionState = SelectionState.forTake(candidates)
+                overlayState = OverlayState.State.Inventory
+                null
+            }
         }
     }
 
@@ -189,7 +196,11 @@ class GameScreen(
         return when {
             candidates.isEmpty() -> null
             candidates.size == 1 -> InputEvent.DropItem(candidates[0].name)
-            else -> null
+            else -> {
+                selectionState = SelectionState.forDrop(candidates)
+                overlayState = OverlayState.State.Inventory
+                null
+            }
         }
     }
 
@@ -198,7 +209,11 @@ class GameScreen(
         return when {
             candidates.isEmpty() -> null
             candidates.size == 1 -> InputEvent.EquipItem(candidates[0].name)
-            else -> null
+            else -> {
+                selectionState = SelectionState.forEquip(candidates)
+                overlayState = OverlayState.State.Inventory
+                null
+            }
         }
     }
 
