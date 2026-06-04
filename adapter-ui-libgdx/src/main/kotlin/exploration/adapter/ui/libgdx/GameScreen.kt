@@ -69,13 +69,13 @@ class GameScreen(
                 com.badlogic.gdx.Input.Keys.LEFT -> InputEvent.MoveDirection(Direction.West)
                 com.badlogic.gdx.Input.Keys.DOWN -> InputEvent.MoveDirection(Direction.South)
                 com.badlogic.gdx.Input.Keys.RIGHT -> InputEvent.MoveDirection(Direction.East)
-                'W'.code -> InputEvent.MoveDirection(Direction.North)
-                'A'.code -> InputEvent.MoveDirection(Direction.West)
-                'S'.code -> InputEvent.MoveDirection(Direction.South)
-                'D'.code -> InputEvent.MoveDirection(Direction.East)
-                com.badlogic.gdx.Input.Keys.L -> InputEvent.Look
-                com.badlogic.gdx.Input.Keys.U -> InputEvent.Activate
-                com.badlogic.gdx.Input.Keys.I -> InputEvent.Inventory
+                com.badlogic.gdx.Input.Keys.W, 'W'.code, 'w'.code -> InputEvent.MoveDirection(Direction.North)
+                com.badlogic.gdx.Input.Keys.A, 'A'.code, 'a'.code -> InputEvent.MoveDirection(Direction.West)
+                com.badlogic.gdx.Input.Keys.S, 'S'.code, 's'.code -> InputEvent.MoveDirection(Direction.South)
+                com.badlogic.gdx.Input.Keys.D, 'D'.code, 'd'.code -> InputEvent.MoveDirection(Direction.East)
+                com.badlogic.gdx.Input.Keys.L, 'L'.code, 'l'.code -> InputEvent.Look
+                com.badlogic.gdx.Input.Keys.U, 'U'.code, 'u'.code -> InputEvent.Activate
+                com.badlogic.gdx.Input.Keys.I, 'I'.code, 'i'.code -> InputEvent.Inventory
                 else -> null
             }
 
