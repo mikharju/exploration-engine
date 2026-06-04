@@ -5,10 +5,13 @@ import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.FitViewport
 import exploration.port.GameEngine
 import exploration.port.InputEvent
@@ -45,23 +48,7 @@ class GameScreen(
     private val inputProcessor = object : InputProcessor {
         override fun keyDown(keycode: Int): Boolean {
             if (keycode == com.badlogic.gdx.Input.Keys.F12) {
-                Gdx.app.log("Debug", "=== DEBUG STATE ===")
-                viewData?.let { vd ->
-                    Gdx.app.log("Debug", "Area: ${vd.currentAreaName}")
-                    Gdx.app.log("Debug", "HP: ${vd.health}/${vd.maxHealth}")
-                    Gdx.app.log("Debug", "Triggers count: ${vd.triggerTexts.size}")
-                    Gdx.app.log("Debug", "Stories count: ${vd.storyMessages.size}")
-                    Gdx.app.log("Debug", "Area items: ${vd.areaItems.size} (locked=${vd.areaItems.any { it.locked }})")
-                    Gdx.app.log("Debug", "Carried items: ${vd.carriedItems.size}")
-                    Gdx.app.log("Debug", "Equipped items: ${vd.equippedItems.size}")
-                    Gdx.app.log("Debug", "End game: ${vd.endGameMessage != null}")
-                    vd.triggerTexts.take(3).forEachIndexed { i, t ->
-                        Gdx.app.log("Debug", "  Trigger[$i]: '$t'")
-                    }
-                    vd.storyMessages.take(3).forEachIndexed { i, s ->
-                        Gdx.app.log("Debug", "  Story[$i]: '$s'")
-                    }
-                } ?: Gdx.app.log("Debug", "viewData is null")
+                saveScreenshot()
                 return true
             }
             val vd = viewData ?: return false
@@ -317,5 +304,33 @@ class GameScreen(
         shapeRenderer.dispose()
         stage.dispose()
         renderer.dispose()
+    }
+
+    private fun saveScreenshot() {
+        val screenshotDir = Gdx.files.local("screenshots")
+        if (!screenshotDir.exists()) screenshotDir.mkdirs()
+
+        val timestamp = System.currentTimeMillis()
+        val fileHandle = screenshotDir.child("screenshot_$timestamp.png")
+
+        try {
+            Gdx.app.postRunnable {
+                try {
+                    val srcPixmap = ScreenUtils.getFrameBufferPixmap(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+                    val flipped = Pixmap(srcPixmap.getWidth(), srcPixmap.getHeight(), srcPixmap.format)
+                    for (y in 0 until srcPixmap.getHeight()) {
+                        flipped.drawPixmap(srcPixmap, 0, flipped.getHeight() - 1 - y, 0, y, srcPixmap.getWidth(), 1)
+                    }
+                    PixmapIO.writePNG(fileHandle, flipped)
+                    srcPixmap.dispose()
+                    flipped.dispose()
+                    Gdx.app.log("Screenshot", "Saved to ${fileHandle.path()}")
+                } catch (e: Exception) {
+                    Gdx.app.error("Screenshot", "Failed to save screenshot", e)
+                }
+            }
+        } catch (e: Exception) {
+            Gdx.app.error("Screenshot", "Failed to queue screenshot", e)
+        }
     }
 }
