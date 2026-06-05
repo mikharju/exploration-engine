@@ -30,7 +30,9 @@ Each UI variant is an independent Gradle module with its own `installDist`:
 
 Run: `./adapter-ui-text/build/install/exploration-engine-ui-text/bin/exploration-engine-ui-text <scenario-file>`
 
-LibGDX desktop app: `./adapter-ui-libgdx/build/libs/adapter-ui-libgdx.jar <scenario-file>` (1800×1100 windowed mode)
+LibGDX desktop app: `./adapter-ui-libgdx/build/install/exploration-engine-ui-libgdx/bin/exploration-engine-ui-libgdx <scenario-file>` (1800×1100 windowed mode)
+
+Run graphical game with default scenario: `./default-scenario.sh`
 
 JVM 25 required. No separate lint/typecheck — `compileKotlin` covers it.
 
@@ -75,6 +77,13 @@ See `scenarios/SCENARIO_FORMAT.md` for full JSON file format spec. Read it into 
 - Commands: `look`, `move w/a/s/d` (indexed directions), `activate/use`, `take <item>`, `drop <item>`, `equip <item>`, `unequip <item>`, `inv` — case-insensitive
 - Game end: defined by triggers, no semantics for winning or losing, trigger may give farewell message which indicates either win or loss
 
+## Screenshots
+
+- Save screenshot by pressing **F12** (built-in)
+- Screenshots are saved to `screenshots/` under the working directory
+- Window resolution: **1800×1100** (windowed mode)
+- Default scenario: `scenarios/default/default.json`
+- Visual testing inside sbx requires Xvfb — see SKILL.md for headless setup
 ---
 
 ## Maybe Keep (review → keep or delete)

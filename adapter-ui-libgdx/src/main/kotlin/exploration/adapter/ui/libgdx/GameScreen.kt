@@ -148,6 +148,7 @@ class GameScreen(
             .let { engine.tick(it, InputEvent.Look) }
         storedStoryCount = viewData!!.storyMessages.size
         Gdx.input.setInputProcessor(InputMultiplexer(stage, inputProcessor))
+        Gdx.app.log("GameReady", "LIBGDX_GAME_READY")
     }
 
     override fun show() {
