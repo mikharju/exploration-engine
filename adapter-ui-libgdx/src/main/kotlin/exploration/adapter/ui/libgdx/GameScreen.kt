@@ -78,7 +78,9 @@ class GameScreen(
                         overlayState = OverlayState.Playing
                         pendingStories = emptyList()
                     }
-                    else -> closeSelection()
+                    OverlayState.Inventory, OverlayState.GameOver -> Gdx.app.exit()
+                    OverlayState.QuitConfirm -> overlayState = OverlayState.Playing
+                    else -> overlayState = OverlayState.QuitConfirm
                 }
             }
 
@@ -97,6 +99,16 @@ class GameScreen(
 
         override fun keyTyped(character: Char): Boolean {
             val vd = viewData ?: return false
+
+            // Y/N — quit confirmation dialog
+            if (overlayState == OverlayState.QuitConfirm) {
+                when (character.lowercaseChar()) {
+                    'y' -> Gdx.app.exit()
+                    'n' -> overlayState = OverlayState.Playing
+                }
+                return true
+            }
+
             var event: InputEvent? = null
 
             // Movement — printable chars only fire keyTyped (not keyDown)
@@ -276,6 +288,7 @@ class GameScreen(
             OverlayState.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
             } ?: renderer.render(vd, selectionState)
+            OverlayState.QuitConfirm -> renderer.renderQuitConfirm()
         }
     }
 

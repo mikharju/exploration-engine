@@ -8,7 +8,8 @@ enum class OverlayState {
     Playing,
     Inventory,
     StoryViewer,
-    GameOver
+    GameOver,
+    QuitConfirm
 }
 
 sealed interface SelectionTarget {

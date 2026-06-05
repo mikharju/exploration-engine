@@ -390,6 +390,31 @@ class Renderer(
         batch.end()
     }
 
+    fun renderQuitConfirm() {
+        drawBackgroundPass()
+
+        val boxW = 500f; val boxH = 200f
+        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
+        shapeRenderer.end()
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
+        shapeRenderer.end()
+
+        batch.begin()
+        font.color = TEXT_HIGHLIGHT
+        val title = "Are you sure you want to quit?"
+        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - MARGIN)
+
+        font.color = TEXT_WHITE
+        val hint = "Press Y to confirm or N to cancel"
+        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + boxH * 0.5f)
+        batch.end()
+    }
+
     private fun splitText(text: String, maxChars: Int): List<String> {
         if (maxChars <= 0) return listOf(text)
         val lines = mutableListOf<String>(); var remaining = text
