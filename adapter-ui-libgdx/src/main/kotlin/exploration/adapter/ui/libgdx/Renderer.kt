@@ -54,7 +54,7 @@ class Renderer(
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
-        drawMessagePanelPass(viewData.triggerTexts, viewData.storyMessages, viewData.currentAreaName, viewData.areaDescription)
+        drawMessagePanelPass(viewData.triggerTexts, emptyList(), viewData.currentAreaName, viewData.areaDescription)
         drawStatusPanelPass(viewData.health, viewData.maxHealth, viewData.exploredCount,
             viewData.totalAreas, viewData.activatedCount, viewData.totalDevices,
             viewData.statuses, viewData.areaItems, viewData.carriedItems, viewData.equippedItems)
