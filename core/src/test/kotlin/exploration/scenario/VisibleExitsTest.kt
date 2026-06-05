@@ -109,7 +109,7 @@ class VisibleExitsTest {
 
         val result = processCommand(state, Command.Move("Cave"))
         assertEquals(forest, result.player.currentArea)
-        assertTrue(result.commandOutput.contains("blocked"))
+        assertTrue(result.messageHistory.last().contains("blocked"))
     }
 
     @Test

@@ -67,7 +67,7 @@ class GameEngineImplTest {
 
         val view = engine.tick(ref, InputEvent.MoveDirection(Direction.South))
 
-        assertEquals("Can't move that way.", view.outputLine)
+        assertEquals("Can't move that way.", view.messageHistory.last())
     }
 
     @Test

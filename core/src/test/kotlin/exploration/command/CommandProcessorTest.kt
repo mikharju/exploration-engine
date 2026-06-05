@@ -40,7 +40,7 @@ class CommandProcessorTest {
     fun `look marks area as explored`() {
         val result = processCommand(initialState, Command.Look)
         assertTrue(AreaId("A") in result.exploredAreas)
-        assertEquals("Room A", result.commandOutput.substringBefore("\n"))
+        assertEquals("Room A", result.messageHistory.last().substringBefore("\n"))
     }
 
     @Test
@@ -48,41 +48,41 @@ class CommandProcessorTest {
         val explored = initialState.copy(exploredAreas = setOf(AreaId("A")))
         val result = processCommand(explored, Command.Look)
         assertTrue(result.exploredAreas.contains(AreaId("A")))
-        assertTrue(result.commandOutput.startsWith("Room A"))
+        assertTrue(result.messageHistory.last().startsWith("Room A"))
     }
 
     @Test
     fun `look shows device description when not activated`() {
         val result = processCommand(initialState, Command.Look)
-        assertTrue(result.commandOutput.contains("healing herb"))
+        assertTrue(result.messageHistory.last().contains("healing herb"))
     }
 
     @Test
     fun `look shows deactivated notice after activation`() {
         val activated = initialState.copy(activatedDevices = setOf(DeviceId("Herb")))
         val result = processCommand(activated, Command.Look)
-        assertTrue(result.commandOutput.contains("Herb has been activated"))
+        assertTrue(result.messageHistory.last().contains("Herb has been activated"))
     }
 
     @Test
     fun `move to connected area succeeds`() {
         val result = processCommand(initialState, Command.Move("B"))
         assertEquals(AreaId("B"), result.player.currentArea)
-        assertTrue(result.commandOutput.contains("move"))
+        assertTrue(result.messageHistory.last().contains("move"))
     }
 
     @Test
     fun `move to non-existent area fails`() {
         val result = processCommand(initialState, Command.Move("Nowhere"))
         assertEquals(AreaId("A"), result.player.currentArea)
-        assertTrue(result.commandOutput.contains("no place called"))
+        assertTrue(result.messageHistory.last().contains("no place called"))
     }
 
     @Test
     fun `move to unconnected area fails`() {
         val result = processCommand(initialState, Command.Move("C"))
         assertEquals(AreaId("A"), result.player.currentArea)
-        assertTrue(result.commandOutput.contains("can't go there"))
+        assertTrue(result.messageHistory.last().contains("can't go there"))
     }
 
     @Test
@@ -97,7 +97,7 @@ class CommandProcessorTest {
         val activated = initialState.copy(activatedDevices = setOf(DeviceId("Herb")))
         val result = processCommand(activated, Command.Activate)
         assertEquals(10, result.player.health)
-        assertTrue(result.commandOutput.contains("already been activated"))
+        assertTrue(result.messageHistory.last().contains("already been activated"))
     }
 
     @Test
@@ -108,7 +108,7 @@ class CommandProcessorTest {
         )
         val state = GameState(world = emptyWorld, player = Player(5, 10, AreaId("X")))
         val result = processCommand(state, Command.Activate)
-        assertTrue(result.commandOutput.contains("nothing here"))
+        assertTrue(result.messageHistory.last().contains("nothing here"))
     }
 
     @Test
@@ -141,14 +141,14 @@ class CommandProcessorTest {
         val gameOver = initialState.copy(endGameMessage = "You collapse from exhaustion... Game Over.")
         val result = processCommand(gameOver, Command.Look)
         assertTrue(AreaId("A") in result.exploredAreas)
-        assertTrue(result.commandOutput.contains("Room A"))
+        assertTrue(result.messageHistory.last().contains("Room A"))
     }
 
     @Test
     fun `non-look commands are rejected on end game state`() {
         val gameOver = initialState.copy(endGameMessage = "You collapse from exhaustion... Game Over.")
         val result = processCommand(gameOver, Command.Move("B"))
-        assertTrue(result.commandOutput.contains("game is over"))
+        assertTrue(result.messageHistory.last().contains("game is over"))
     }
 
     @Test
@@ -187,7 +187,7 @@ class CommandProcessorTest {
         assertTrue(afterEnd.endGameMessage != null)
         val nextCmd = processCommand(afterEnd, Command.Look)
         assertEquals(AreaId("End"), nextCmd.player.currentArea)
-        assertTrue(nextCmd.commandOutput.contains("B."))
+        assertTrue(nextCmd.messageHistory.last().contains("B."))
     }
 
     @Test
@@ -196,7 +196,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Key"), "A rusty key.", Location.area(AreaId("A"))))
         )
         val result = processCommand(withItem, Command.TakeItem("Key"))
-        assertEquals("You pick up the Key.", result.commandOutput)
+        assertEquals("You pick up the Key.", result.messageHistory.last())
         assertEquals(1, result.items.size)
         assertEquals(ItemLocationType.CARRIED, result.items[0].location.type)
     }
@@ -207,13 +207,13 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Gem"), "A gem.", Location.device(DeviceId("Orb"))))
         )
         val result = processCommand(withItem, Command.TakeItem("Gem"))
-        assertTrue(result.commandOutput.contains("isn't here"))
+        assertTrue(result.messageHistory.last().contains("isn't here"))
     }
 
     @Test
     fun `take non-existent item fails`() {
         val result = processCommand(initialState, Command.TakeItem("Key"))
-        assertTrue(result.commandOutput.contains("no item called"))
+        assertTrue(result.messageHistory.last().contains("no item called"))
     }
 
     @Test
@@ -222,7 +222,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Potion"), "A health potion.", Location(ItemLocationType.CARRIED)))
         )
         val result = processCommand(withCarried, Command.DropItem("Potion"))
-        assertEquals("You drop the Potion.", result.commandOutput)
+        assertEquals("You drop the Potion.", result.messageHistory.last())
         assertEquals(ItemLocationType.AREA, result.items[0].location.type)
     }
 
@@ -232,7 +232,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Shield"), "A small shield.", Location(ItemLocationType.EQUIPPED)))
         )
         val result = processCommand(withEquipped, Command.DropItem("Shield"))
-        assertEquals("You drop the Shield (auto-unequipped).", result.commandOutput)
+        assertEquals("You drop the Shield (auto-unequipped).", result.messageHistory.last())
         assertEquals(ItemLocationType.AREA, result.items[0].location.type)
     }
 
@@ -242,7 +242,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("CursedRing"), "A cursed ring.", Location(ItemLocationType.EQUIPPED), locked = true))
         )
         val result = processCommand(withEquipped, Command.DropItem("CursedRing"))
-        assertTrue(result.commandOutput.contains("it's locked"))
+        assertTrue(result.messageHistory.last().contains("it's locked"))
     }
 
     @Test
@@ -251,7 +251,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Box"), "A sealed box.", Location(ItemLocationType.CARRIED), locked = true))
         )
         val result = processCommand(withCarried, Command.DropItem("Box"))
-        assertTrue(result.commandOutput.contains("it's locked"))
+        assertTrue(result.messageHistory.last().contains("it's locked"))
     }
 
     @Test
@@ -260,7 +260,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Dagger"), "A dagger.", Location.area(AreaId("B"))))
         )
         val result = processCommand(withAreaItem, Command.DropItem("Dagger"))
-        assertTrue(result.commandOutput.contains("isn't in your inventory"))
+        assertTrue(result.messageHistory.last().contains("isn't in your inventory"))
     }
 
     @Test
@@ -269,7 +269,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Sword"), "An iron sword.", Location(ItemLocationType.CARRIED)))
         )
         val result = processCommand(withCarried, Command.EquipItem("Sword"))
-        assertEquals("You equip the Sword.", result.commandOutput)
+        assertEquals("You equip the Sword.", result.messageHistory.last())
         assertEquals(ItemLocationType.EQUIPPED, result.items[0].location.type)
     }
 
@@ -279,7 +279,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Bow"), "A bow.", Location(ItemLocationType.AREA)))
         )
         val result = processCommand(withAreaItem, Command.EquipItem("Bow"))
-        assertTrue(result.commandOutput.contains("isn't in your inventory"))
+        assertTrue(result.messageHistory.last().contains("isn't in your inventory"))
     }
 
     @Test
@@ -288,7 +288,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Amulet"), "An ancient amulet.", Location(ItemLocationType.CARRIED), locked = true))
         )
         val result = processCommand(withCarried, Command.EquipItem("Amulet"))
-        assertTrue(result.commandOutput.contains("it's locked"))
+        assertTrue(result.messageHistory.last().contains("it's locked"))
     }
 
     @Test
@@ -297,7 +297,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Helmet"), "A steel helmet.", Location(ItemLocationType.EQUIPPED)))
         )
         val result = processCommand(withEquipped, Command.UnequipItem("Helmet"))
-        assertEquals("You unequip the Helmet.", result.commandOutput)
+        assertEquals("You unequip the Helmet.", result.messageHistory.last())
         assertEquals(ItemLocationType.CARRIED, result.items[0].location.type)
     }
 
@@ -307,7 +307,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Gauntlets"), "Iron gauntlets.", Location(ItemLocationType.CARRIED)))
         )
         val result = processCommand(withCarried, Command.UnequipItem("Gauntlets"))
-        assertTrue(result.commandOutput.contains("isn't equipped"))
+        assertTrue(result.messageHistory.last().contains("isn't equipped"))
     }
 
     @Test
@@ -316,7 +316,7 @@ class CommandProcessorTest {
             items = listOf(Item(ItemId("Robe"), "A ceremonial robe.", Location(ItemLocationType.EQUIPPED), locked = true))
         )
         val result = processCommand(withEquipped, Command.UnequipItem("Robe"))
-        assertTrue(result.commandOutput.contains("it's locked"))
+        assertTrue(result.messageHistory.last().contains("it's locked"))
     }
 
     @Test
@@ -325,10 +325,10 @@ class CommandProcessorTest {
         val withItems = gameOver.copy(
             items = listOf(Item(ItemId("Key"), "A key.", Location(ItemLocationType.CARRIED)))
         )
-        assertTrue(processCommand(withItems, Command.TakeItem("Key")).commandOutput.contains("game is over"))
-        assertTrue(processCommand(withItems, Command.DropItem("Key")).commandOutput.contains("game is over"))
-        assertTrue(processCommand(withItems, Command.EquipItem("Key")).commandOutput.contains("game is over"))
-        assertTrue(processCommand(withItems, Command.UnequipItem("Key")).commandOutput.contains("game is over"))
+        assertTrue(processCommand(withItems, Command.TakeItem("Key")).messageHistory.last().contains("game is over"))
+        assertTrue(processCommand(withItems, Command.DropItem("Key")).messageHistory.last().contains("game is over"))
+        assertTrue(processCommand(withItems, Command.EquipItem("Key")).messageHistory.last().contains("game is over"))
+        assertTrue(processCommand(withItems, Command.UnequipItem("Key")).messageHistory.last().contains("game is over"))
     }
 
     @Test
@@ -340,17 +340,17 @@ class CommandProcessorTest {
             )
         )
         val result = processCommand(withItems, Command.Inventory)
-        assertTrue(result.commandOutput.contains("Inventory:"))
-        assertTrue(result.commandOutput.contains("Equipped:"))
-        assertTrue(result.commandOutput.contains("Sword"))
-        assertTrue(result.commandOutput.contains("Carried:"))
-        assertTrue(result.commandOutput.contains("Potion"))
+        assertTrue(result.messageHistory.last().contains("Inventory:"))
+        assertTrue(result.messageHistory.last().contains("Equipped:"))
+        assertTrue(result.messageHistory.last().contains("Sword"))
+        assertTrue(result.messageHistory.last().contains("Carried:"))
+        assertTrue(result.messageHistory.last().contains("Potion"))
     }
 
     @Test
     fun `inventory shows empty when no items`() {
         val result = processCommand(initialState, Command.Inventory)
-        assertTrue(result.commandOutput.contains("Inventory:"))
-        assertTrue(result.commandOutput.contains("(empty)"))
+        assertTrue(result.messageHistory.last().contains("Inventory:"))
+        assertTrue(result.messageHistory.last().contains("(empty)"))
     }
 }

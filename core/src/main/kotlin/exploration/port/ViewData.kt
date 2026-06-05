@@ -15,7 +15,7 @@ data class ExitInfo(
 )
 
 data class ViewData(
-    val outputLine: String,
+    val messageHistory: List<String>,
     val commandText: String,
     val triggerTexts: List<String>,
     val storyMessages: List<String> = emptyList(),

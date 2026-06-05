@@ -163,8 +163,8 @@ class LanternaUiAdapter(private val engine: GameEngine) {
         if (endMsg != null) {
             addMessage(state.history, "", false)
             addMessage(state.history, endMsg, false)
-        } else if (state.currentView.outputLine.isNotBlank()) {
-            addMessage(state.history, state.currentView.outputLine, false)
+        } else if (state.currentView.messageHistory.isNotEmpty()) {
+            addMessage(state.history, state.currentView.messageHistory.last(), false)
         }
         screen.doResizeIfNecessary()
         render(screen, state.currentView, state.history, state.overlay)

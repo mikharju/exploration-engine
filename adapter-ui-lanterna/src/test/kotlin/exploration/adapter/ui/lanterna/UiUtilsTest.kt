@@ -91,7 +91,7 @@ class UiUtilsTest {
     }
 
     private fun fullViewData(): ViewData = ViewData(
-        outputLine = "test", commandText = "", triggerTexts = emptyList(),
+        messageHistory = listOf("test"), commandText = "", triggerTexts = emptyList(),
         health = 10, maxHealth = 10, currentAreaName = "Room",
         exploredCount = 1, totalAreas = 1, activatedCount = 0, totalDevices = 1,
         exits = mapOf(

@@ -223,7 +223,7 @@ class InputMapperTest {
         equippedItems: List<ItemView> = emptyList(),
         storyMessages: List<String> = listOf("Story message")
     ): ViewData = ViewData(
-        outputLine = "You are in a room.", commandText = "", triggerTexts = emptyList(),
+        messageHistory = listOf("You are in a room."), commandText = "", triggerTexts = emptyList(),
         health = 10, maxHealth = 20, currentAreaName = "Room",
         exploredCount = 1, totalAreas = 1, activatedCount = 0, totalDevices = 1,
         exits = mapOf(

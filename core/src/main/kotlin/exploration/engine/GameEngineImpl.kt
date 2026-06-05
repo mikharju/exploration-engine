@@ -28,7 +28,7 @@ class GameEngineImpl(
             is InputEvent.Inventory -> Command.Inventory
         }
 
-        state = if (command != null) processCommand(state, command) else state.copy(commandOutput = "Can't move that way.")
+        state = if (command != null) processCommand(state, command) else state.copy(messageHistory = state.messageHistory + "Can't move that way.")
         store.saveGame(ref, state)
         return makeView(state)
     }
@@ -43,9 +43,9 @@ class GameEngineImpl(
     private fun makeView(state: GameState): ViewData {
         val area = state.world.getArea(state.player.currentArea)
         return ViewData(
-            commandText = state.commandOutput,
+            messageHistory = state.messageHistory,
+            commandText = state.messageHistory.lastOrNull() ?: "",
             triggerTexts = state.triggerTexts,
-            outputLine = if (state.triggerTexts.isEmpty()) state.commandOutput else "${state.commandOutput}\n${state.triggerTexts.joinToString("\n")}",
             areaDescription = area.description.takeIf { it.isNotBlank() },
             health = state.player.health,
             maxHealth = state.player.maxHealth,
@@ -70,9 +70,9 @@ class GameEngineImpl(
     private fun makeEndView(state: GameState): ViewData {
         val area = state.world.getArea(state.player.currentArea)
         return ViewData(
+            messageHistory = state.messageHistory + (state.endGameMessage ?: "The game is over."),
             commandText = "Game over",
             triggerTexts = emptyList(),
-            outputLine = state.endGameMessage ?: "The game is over.",
             areaDescription = null,
             health = state.player.health,
             maxHealth = state.player.maxHealth,

@@ -8,7 +8,7 @@ import exploration.state.GameState
 
 fun processCommand(state: GameState, command: Command): GameState {
     if (state.endGameMessage != null && command !is Command.Look) {
-        return state.copy(commandOutput = "The game is over. Restart to play again.")
+        return state.copy(messageHistory = state.messageHistory + "The game is over. Restart to play again.")
     }
 
     val cmdResult = when (command) {
@@ -45,16 +45,16 @@ private data class CmdResult(
 private fun runMove(state: GameState, targetName: String): CmdResult {
     val currentArea = state.world.getArea(state.player.currentArea)
     val targetId = findAreaId(state, targetName) ?: return CmdResult(
-        state.copy(commandOutput = "There's no place called '$targetName' here."), null, null, false)
+        state.copy(messageHistory = state.messageHistory + "There's no place called '$targetName' here."), null, null, false)
 
     if (targetId !in currentArea.connections) {
         val valid = currentArea.connections.joinToString(", ")
-        return CmdResult(state.copy(commandOutput = "You can't go there directly. Connected areas: $valid"), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "You can't go there directly. Connected areas: $valid"), null, null, false)
     }
 
     if (state.isExitBlocked(state.player.currentArea, targetId)) {
         return CmdResult(
-            state.copy(commandOutput = "That way is blocked."),
+            state.copy(messageHistory = state.messageHistory + "That way is blocked."),
             null, null, false
         )
     }
@@ -62,7 +62,7 @@ private fun runMove(state: GameState, targetName: String): CmdResult {
     return CmdResult(
         state.copy(
             player = state.player.copy(currentArea = targetId),
-            commandOutput = "You move to the ${targetId.name}."
+            messageHistory = state.messageHistory + "You move to the ${targetId.name}."
         ),
         targetId,
         null,
@@ -73,10 +73,10 @@ private fun runMove(state: GameState, targetName: String): CmdResult {
 private fun runActivate(state: GameState): CmdResult {
     val area = state.world.getArea(state.player.currentArea)
     val device = area.device ?: return CmdResult(
-        state.copy(commandOutput = "There's nothing here to activate."), null, null, false)
+        state.copy(messageHistory = state.messageHistory + "There's nothing here to activate."), null, null, false)
 
     if (device.id in state.activatedDevices) {
-        return CmdResult(state.copy(commandOutput = "${device.id} has already been activated."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "${device.id} has already been activated."), null, null, false)
     }
 
     var player = state.player
@@ -104,7 +104,7 @@ private fun runActivate(state: GameState): CmdResult {
         state.copy(
             player = player,
             activatedDevices = state.activatedDevices + device.id,
-            commandOutput = "${device.activateDescription}$suffix"
+            messageHistory = state.messageHistory + "${device.activateDescription}$suffix"
         ),
         null,
         device.id,
@@ -136,16 +136,16 @@ private fun processLook(state: GameState): GameState {
 
     return state.copy(
         exploredAreas = state.exploredAreas + areaId,
-        commandOutput = "${area.description}$deviceText$itemText$equippedText"
+        messageHistory = state.messageHistory + "${area.description}$deviceText$itemText$equippedText"
     )
 }
 
 private fun runTake(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
-        ?: return CmdResult(state.copy(commandOutput = "There's no item called '$itemName' here."), null, null, false)
+        ?: return CmdResult(state.copy(messageHistory = state.messageHistory + "There's no item called '$itemName' here."), null, null, false)
 
     if (!item.isInArea(state.player.currentArea)) {
-        return CmdResult(state.copy(commandOutput = "That item isn't here."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "That item isn't here."), null, null, false)
     }
 
     val newItems = state.items.map { i ->
@@ -154,7 +154,7 @@ private fun runTake(state: GameState, itemName: String): CmdResult {
 
     return CmdResult(
         state.copy(
-            commandOutput = "You pick up the ${item.id.name}.",
+            messageHistory = state.messageHistory + "You pick up the ${item.id.name}.",
             items = newItems
         ),
         null, null, false
@@ -163,10 +163,10 @@ private fun runTake(state: GameState, itemName: String): CmdResult {
 
 private fun runDrop(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
-        ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
+        ?: return CmdResult(state.copy(messageHistory = state.messageHistory + "You don't have '$itemName'."), null, null, false)
 
     if (item.locked) {
-        return CmdResult(state.copy(commandOutput = "You can't drop the ${item.id.name} — it's locked."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "You can't drop the ${item.id.name} — it's locked."), null, null, false)
     }
 
     val newItems = state.items.map { i ->
@@ -176,12 +176,12 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
     val message = when (item.location.type) {
         ItemLocationType.EQUIPPED -> "You drop the ${item.id.name} (auto-unequipped)."
         ItemLocationType.CARRIED -> "You drop the ${item.id.name}."
-        else -> return CmdResult(state.copy(commandOutput = "That item isn't in your inventory."), null, null, false)
+        else -> return CmdResult(state.copy(messageHistory = state.messageHistory + "That item isn't in your inventory."), null, null, false)
     }
 
     return CmdResult(
         state.copy(
-            commandOutput = message,
+            messageHistory = state.messageHistory + message,
             items = newItems
         ),
         null, null, false
@@ -190,14 +190,14 @@ private fun runDrop(state: GameState, itemName: String): CmdResult {
 
 private fun runEquip(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
-        ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
+        ?: return CmdResult(state.copy(messageHistory = state.messageHistory + "You don't have '$itemName'."), null, null, false)
 
     if (!item.isCarried()) {
-        return CmdResult(state.copy(commandOutput = "That item isn't in your inventory."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "That item isn't in your inventory."), null, null, false)
     }
 
     if (item.locked) {
-        return CmdResult(state.copy(commandOutput = "You can't equip the ${item.id.name} — it's locked."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "You can't equip the ${item.id.name} — it's locked."), null, null, false)
     }
 
     val newItems = state.items.map { i ->
@@ -206,7 +206,7 @@ private fun runEquip(state: GameState, itemName: String): CmdResult {
 
     return CmdResult(
         state.copy(
-            commandOutput = "You equip the ${item.id.name}.",
+            messageHistory = state.messageHistory + "You equip the ${item.id.name}.",
             items = newItems
         ),
         null, null, false
@@ -215,14 +215,14 @@ private fun runEquip(state: GameState, itemName: String): CmdResult {
 
 private fun runUnequip(state: GameState, itemName: String): CmdResult {
     val item = findItem(state, itemName)
-        ?: return CmdResult(state.copy(commandOutput = "You don't have '$itemName'."), null, null, false)
+        ?: return CmdResult(state.copy(messageHistory = state.messageHistory + "You don't have '$itemName'."), null, null, false)
 
     if (!item.isEquipped()) {
-        return CmdResult(state.copy(commandOutput = "That item isn't equipped."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "That item isn't equipped."), null, null, false)
     }
 
     if (item.locked) {
-        return CmdResult(state.copy(commandOutput = "You can't unequip the ${item.id.name} — it's locked."), null, null, false)
+        return CmdResult(state.copy(messageHistory = state.messageHistory + "You can't unequip the ${item.id.name} — it's locked."), null, null, false)
     }
 
     val newItems = state.items.map { i ->
@@ -231,7 +231,7 @@ private fun runUnequip(state: GameState, itemName: String): CmdResult {
 
     return CmdResult(
         state.copy(
-            commandOutput = "You unequip the ${item.id.name}.",
+            messageHistory = state.messageHistory + "You unequip the ${item.id.name}.",
             items = newItems
         ),
         null, null, false
@@ -263,7 +263,7 @@ private fun processInventory(state: GameState): GameState {
         lines.add("  (empty)")
     }
 
-    return state.copy(commandOutput = lines.joinToString("\n"))
+    return state.copy(messageHistory = state.messageHistory + lines.joinToString("\n"))
 }
 
 private fun findItem(state: GameState, name: String): Item? {

@@ -45,7 +45,7 @@ class ExitStatesTest {
         val withBlockedExit = initialState.copy(exitStates = mapOf(ExitId(forest, cave) to ExitStateData(ExitState.BLOCKED)))
         val result = processCommand(withBlockedExit, Command.Move("Cave"))
         assertEquals(forest, result.player.currentArea)
-        assertTrue(result.commandOutput.contains("blocked"))
+        assertTrue(result.messageHistory.last().contains("blocked"))
     }
 
     @Test
@@ -69,7 +69,7 @@ class ExitStatesTest {
         // Can't go Forest -> Cave
         var result = processCommand(withBlockedExit, Command.Move("Cave"))
         assertEquals(forest, result.player.currentArea)
-        assertTrue(result.commandOutput.contains("blocked"))
+        assertTrue(result.messageHistory.last().contains("blocked"))
 
         // Move to tower first (no exit state set for that direction), then back to cave, then try Forest -> Cave from cave side
         // Actually, let's test Cave -> Forest is fine since we didn't block it
@@ -90,7 +90,7 @@ class ExitStatesTest {
         // Can't go Forest -> Cave (blocked)
         var result = processCommand(state, Command.Move("Cave"))
         assertEquals(forest, result.player.currentArea)
-        assertTrue(result.commandOutput.contains("blocked"))
+        assertTrue(result.messageHistory.last().contains("blocked"))
 
         // Create a different starting position in cave to test one-way
         val stateFromCave = GameState(
@@ -106,7 +106,7 @@ class ExitStatesTest {
         // Can't go Cave -> Tower (blocked)
         result = processCommand(stateFromCave, Command.Move("Tower"))
         assertEquals(cave, result.player.currentArea)
-        assertTrue(result.commandOutput.contains("blocked"))
+        assertTrue(result.messageHistory.last().contains("blocked"))
     }
 
     @Test

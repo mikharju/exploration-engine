@@ -54,7 +54,7 @@ class Renderer(
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
-        drawMessagePanelPass(viewData.triggerTexts, emptyList(), viewData.currentAreaName, viewData.areaDescription, viewData.outputLine)
+        drawMessagePanelPass(viewData.triggerTexts, viewData.storyMessages, viewData.currentAreaName, viewData.areaDescription, viewData.messageHistory)
         drawStatusPanelPass(viewData.health, viewData.maxHealth, viewData.exploredCount,
             viewData.totalAreas, viewData.activatedCount, viewData.totalDevices,
             viewData.statuses, viewData.areaItems, viewData.carriedItems, viewData.equippedItems)
@@ -183,7 +183,7 @@ class Renderer(
         shapeRenderer.end()
     }
 
-    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?, outputLine: String = "") {
+    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?, messageHistory: List<String>) {
         val filteredTriggers = if (areaDescription != null && triggers.contains(areaDescription)) {
             triggers.filterNot { it == areaDescription }
         } else {
@@ -201,11 +201,16 @@ class Renderer(
         batch.begin()
 
         val maxMessages = 50
-        val allTriggers = if (filteredTriggers.size > maxMessages / 2) filteredTriggers.takeLast(maxMessages / 2) else filteredTriggers
+        val allTriggers = if (filteredTriggers.size > maxMessages / 3) filteredTriggers.takeLast(maxMessages / 3) else filteredTriggers
         val remainingSlots = maxMessages - allTriggers.size
-        val allStories = if (stories.size > remainingSlots) stories.takeLast(remainingSlots) else stories
+        val allStories = if (stories.size > remainingSlots / 2) stories.takeLast(remainingSlots / 2) else stories
+
+        val historyToRender = if (messageHistory.size > remainingSlots / 2) messageHistory.takeLast(remainingSlots / 2) else messageHistory
 
         val allItems = mutableListOf<Pair<String, Color>>()
+        for (msg in historyToRender) {
+            allItems.add(msg to TEXT_WHITE)
+        }
         for (trigger in allTriggers.reversed()) {
             allItems.add(trigger to TEXT_WHITE)
         }
@@ -220,28 +225,6 @@ class Renderer(
 
         var y = areaLabelY - font.lineHeight * 1.3f
         val minY = panelTopY + PANEL_PADDING
-
-        if (outputLine.isNotBlank()) {
-            val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
-            val segments = outputLine.split("\n")
-            var isFirstSegment = true
-            for (segment in segments) {
-                if (segment.isBlank()) {
-                    y -= font.lineHeight * 0.5f
-                    isFirstSegment = false
-                    continue
-                }
-                val wrappedLines = splitText(segment, maxChars)
-                for ((lineIdx, line) in wrappedLines.withIndex()) {
-                    if (y < minY) break
-                    font.color = TEXT_WHITE
-                    val displayLine = if (isFirstSegment && lineIdx == 0) "• $line" else line
-                    font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
-                    y -= font.lineHeight * 1.3f
-                }
-                isFirstSegment = false
-            }
-        }
 
         val maxCharsForTriggers = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
         for ((text, color) in allItems) {
@@ -266,7 +249,7 @@ class Renderer(
             }
         }
 
-        if (filteredTriggers.isEmpty() && stories.isEmpty()) {
+        if (filteredTriggers.isEmpty() && stories.isEmpty() && historyToRender.isEmpty()) {
             val hintY = areaLabelY - font.lineHeight * 2
             if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
         }

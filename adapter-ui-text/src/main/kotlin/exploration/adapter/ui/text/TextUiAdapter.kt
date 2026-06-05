@@ -45,7 +45,9 @@ class TextUiAdapter(private val engine: GameEngine) {
     }
 
     private fun render(v: ViewData) {
-        if (v.outputLine.isNotBlank()) println(v.outputLine)
+        for (msg in v.messageHistory) {
+            if (msg.isNotBlank()) println(msg)
+        }
         for (msg in v.storyMessages) {
             if (msg.isNotBlank()) println(msg)
         }
@@ -85,7 +87,7 @@ class TextUiAdapter(private val engine: GameEngine) {
     private fun showEnd(v: ViewData) {
         println()
         if (v.endGameMessage != null) println(v.endGameMessage)
-        else if (v.outputLine.isNotBlank()) println(v.outputLine)
+        else if (v.messageHistory.isNotEmpty()) println(v.messageHistory.last())
         println()
     }
 }

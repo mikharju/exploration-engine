@@ -19,7 +19,7 @@ data class GameState(
     val player: Player,
     val exploredAreas: Set<AreaId> = emptySet(),
     val activatedDevices: Set<DeviceId> = emptySet(),
-    val commandOutput: String = "",
+    val messageHistory: List<String> = emptyList(),
     val triggerTexts: List<String> = emptyList(),
     val endGameMessage: String? = null,
     val statusBounds: Map<String, StatusRange> = emptyMap(),
