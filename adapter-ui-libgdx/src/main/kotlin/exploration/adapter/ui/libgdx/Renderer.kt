@@ -186,7 +186,6 @@ class Renderer(
     }
 
     private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?) {
-        Gdx.app.log("MsgDebug", "triggers=$triggers stories=${stories.size} areaDesc='$areaDescription' lastDrawn='$lastDrawnAreaDescription'")
         val panelX = MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
         val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
         val panelTopY = panelBottomY - panelH

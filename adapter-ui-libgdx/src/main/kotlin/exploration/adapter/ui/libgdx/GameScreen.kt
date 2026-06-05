@@ -47,7 +47,6 @@ class GameScreen(
 
     private val inputProcessor = object : InputProcessor {
         override fun keyDown(keycode: Int): Boolean {
-            Gdx.app.log("KeyDebug", "keyDown keycode=$keycode")
             if (keycode == com.badlogic.gdx.Input.Keys.F12) {
                 saveScreenshot()
                 return true
@@ -97,7 +96,6 @@ class GameScreen(
         }
 
         override fun keyTyped(character: Char): Boolean {
-            Gdx.app.log("KeyDebug", "keyTyped char='$character' code=${character.code}")
             val vd = viewData ?: return false
             var event: InputEvent? = null
 
