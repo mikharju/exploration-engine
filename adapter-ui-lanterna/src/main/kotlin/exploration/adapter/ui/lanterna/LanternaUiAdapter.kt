@@ -415,17 +415,40 @@ class LanternaUiAdapter(private val engine: GameEngine) {
             row++
         }
 
-        if (v.equippedItems.isEmpty()) return
+        if (v.equippedItems.isEmpty()) {
+            // Skip equipped items section but continue to carried items
+        } else {
+            if (row < top.row + maxRows && statuses.isNotEmpty()) {
+                g.putString(top.column, row, " ".repeat(width))
+                row++
+            }
 
-        if (row < top.row + maxRows && statuses.isNotEmpty()) {
+            for ((_, item) in v.equippedItems.withIndex()) {
+                if (row >= top.row + maxRows) break
+                val label = "@ ${item.name}" + if (item.locked) " (Locked)" else ""
+                g.foregroundColor = if (item.locked) TextColor.ANSI.RED else TextColor.ANSI.MAGENTA
+                g.enableModifiers(SGR.BOLD)
+                g.putString(top.column, row, label.padEnd(width))
+                g.disableModifiers(SGR.BOLD)
+                g.foregroundColor = TextColor.ANSI.DEFAULT
+                row++
+            }
+        }
+
+        if (v.carriedItems.isEmpty()) {
+            g.foregroundColor = TextColor.ANSI.DEFAULT
+            return
+        }
+
+        if (row < top.row + maxRows && (statuses.isNotEmpty() || v.equippedItems.isNotEmpty())) {
             g.putString(top.column, row, " ".repeat(width))
             row++
         }
 
-        for ((_, item) in v.equippedItems.withIndex()) {
+        for ((_, item) in v.carriedItems.withIndex()) {
             if (row >= top.row + maxRows) break
-            val label = "@ ${item.name}" + if (item.locked) " (Locked)" else ""
-            g.foregroundColor = if (item.locked) TextColor.ANSI.RED else TextColor.ANSI.MAGENTA
+            val label = "* ${item.name}" + if (item.locked) " (Locked)" else ""
+            g.foregroundColor = if (item.locked) TextColor.ANSI.RED else TextColor.ANSI.YELLOW
             g.enableModifiers(SGR.BOLD)
             g.putString(top.column, row, label.padEnd(width))
             g.disableModifiers(SGR.BOLD)

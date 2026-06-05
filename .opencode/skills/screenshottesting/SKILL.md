@@ -21,7 +21,6 @@ description: |
   Think step by step before writing a test script: identify what inputs
   are needed, what state the program should be in before taking the
   screenshot, and what to look for in the result.
-model_hint: qwen3.6-35b-a3b
 language: bash
 ---
 
