@@ -32,6 +32,7 @@
     }
   },
   "permission": {
+    "doom_loop": "allow",
     "*": "allow",
     "skill": {
       "*": "allow"

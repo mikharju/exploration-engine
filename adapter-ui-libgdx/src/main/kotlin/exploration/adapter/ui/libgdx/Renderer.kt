@@ -54,7 +54,7 @@ class Renderer(
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
-        drawMessagePanelPass(viewData.triggerTexts, emptyList(), viewData.currentAreaName, viewData.areaDescription)
+        drawMessagePanelPass(viewData.triggerTexts, emptyList(), viewData.currentAreaName, viewData.areaDescription, viewData.outputLine)
         drawStatusPanelPass(viewData.health, viewData.maxHealth, viewData.exploredCount,
             viewData.totalAreas, viewData.activatedCount, viewData.totalDevices,
             viewData.statuses, viewData.areaItems, viewData.carriedItems, viewData.equippedItems)
@@ -183,7 +183,7 @@ class Renderer(
         shapeRenderer.end()
     }
 
-    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?) {
+    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?, outputLine: String = "") {
         val filteredTriggers = if (areaDescription != null && triggers.contains(areaDescription)) {
             triggers.filterNot { it == areaDescription }
         } else {
@@ -221,19 +221,29 @@ class Renderer(
         var y = areaLabelY - font.lineHeight * 1.3f
         val minY = panelTopY + PANEL_PADDING
 
-        if (areaDescription != null && areaDescription.isNotBlank()) {
+        if (outputLine.isNotBlank()) {
             val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
-            val wrappedLines = splitText(areaDescription, maxChars)
-            for ((lineIdx, line) in wrappedLines.withIndex()) {
-                if (y < minY) break
-                font.color = TEXT_HIGHLIGHT
-                val displayLine = if (lineIdx == 0) "> $line" else line
-                font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
-                y -= font.lineHeight * 1.3f
+            val segments = outputLine.split("\n")
+            var isFirstSegment = true
+            for (segment in segments) {
+                if (segment.isBlank()) {
+                    y -= font.lineHeight * 0.5f
+                    isFirstSegment = false
+                    continue
+                }
+                val wrappedLines = splitText(segment, maxChars)
+                for ((lineIdx, line) in wrappedLines.withIndex()) {
+                    if (y < minY) break
+                    font.color = TEXT_WHITE
+                    val displayLine = if (isFirstSegment && lineIdx == 0) "• $line" else line
+                    font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
+                    y -= font.lineHeight * 1.3f
+                }
+                isFirstSegment = false
             }
         }
 
-        val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
+        val maxCharsForTriggers = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
         for ((text, color) in allItems) {
             if (y < minY) break
             font.color = color
@@ -245,7 +255,7 @@ class Renderer(
                     isFirstSegment = false
                     continue
                 }
-                val wrappedLines = splitText(segment, maxChars)
+                val wrappedLines = splitText(segment, maxCharsForTriggers)
                 for ((lineIdx, line) in wrappedLines.withIndex()) {
                     if (y < minY) break
                     val displayLine = if (isFirstSegment && lineIdx == 0) "• $line" else line
