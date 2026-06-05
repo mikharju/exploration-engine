@@ -50,8 +50,6 @@ class Renderer(
     private val layout = GlyphLayout()
     private fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
 
-    private var lastDrawnAreaDescription: String? = null
-
     fun render(viewData: ViewData, selectionState: SelectionState = SelectionState.inactive()) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
@@ -186,6 +184,12 @@ class Renderer(
     }
 
     private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?) {
+        val filteredTriggers = if (areaDescription != null && triggers.contains(areaDescription)) {
+            triggers.filterNot { it == areaDescription }
+        } else {
+            triggers
+        }
+
         val panelX = MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
         val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
         val panelTopY = panelBottomY - panelH
@@ -197,7 +201,7 @@ class Renderer(
         batch.begin()
 
         val maxMessages = 50
-        val allTriggers = if (triggers.size > maxMessages / 2) triggers.takeLast(maxMessages / 2) else triggers
+        val allTriggers = if (filteredTriggers.size > maxMessages / 2) filteredTriggers.takeLast(maxMessages / 2) else filteredTriggers
         val remainingSlots = maxMessages - allTriggers.size
         val allStories = if (stories.size > remainingSlots) stories.takeLast(remainingSlots) else stories
 
@@ -217,19 +221,16 @@ class Renderer(
         var y = areaLabelY - font.lineHeight * 1.3f
         val minY = panelTopY + PANEL_PADDING
 
-        // Draw area description only if it differs from last drawn (new area entered)
-        val shouldShowAreaDesc = areaDescription != null && areaDescription.isNotBlank() && areaDescription != lastDrawnAreaDescription
-        if (shouldShowAreaDesc) {
+        if (areaDescription != null && areaDescription.isNotBlank()) {
             val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
             val wrappedLines = splitText(areaDescription, maxChars)
             for ((lineIdx, line) in wrappedLines.withIndex()) {
                 if (y < minY) break
                 font.color = TEXT_HIGHLIGHT
-                val displayLine = if (lineIdx == 0) "▸ $line" else line
+                val displayLine = if (lineIdx == 0) "> $line" else line
                 font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
                 y -= font.lineHeight * 1.3f
             }
-            lastDrawnAreaDescription = areaDescription
         }
 
         val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
@@ -255,7 +256,7 @@ class Renderer(
             }
         }
 
-        if (triggers.isEmpty() && stories.isEmpty()) {
+        if (filteredTriggers.isEmpty() && stories.isEmpty()) {
             val hintY = areaLabelY - font.lineHeight * 2
             if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
         }
