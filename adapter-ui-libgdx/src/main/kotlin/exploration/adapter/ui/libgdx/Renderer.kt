@@ -50,11 +50,13 @@ class Renderer(
     private val layout = GlyphLayout()
     private fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
 
+    private var lastDrawnAreaDescription: String? = null
+
     fun render(viewData: ViewData, selectionState: SelectionState = SelectionState.inactive()) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
-        drawMessagePanelPass(viewData.triggerTexts, viewData.storyMessages, viewData.currentAreaName)
+        drawMessagePanelPass(viewData.triggerTexts, viewData.storyMessages, viewData.currentAreaName, viewData.areaDescription)
         drawStatusPanelPass(viewData.health, viewData.maxHealth, viewData.exploredCount,
             viewData.totalAreas, viewData.activatedCount, viewData.totalDevices,
             viewData.statuses, viewData.areaItems, viewData.carriedItems, viewData.equippedItems)
@@ -183,10 +185,11 @@ class Renderer(
         shapeRenderer.end()
     }
 
-    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?) {
+    private fun drawMessagePanelPass(triggers: List<String>, stories: List<String>, areaName: String?, areaDescription: String?) {
+        Gdx.app.log("MsgDebug", "triggers=$triggers stories=${stories.size} areaDesc='$areaDescription' lastDrawn='$lastDrawnAreaDescription'")
         val panelX = MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelTopY = panelBottomY - (viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4) + PANEL_PADDING * 2
         val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
+        val panelTopY = panelBottomY - panelH
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)
@@ -212,31 +215,50 @@ class Renderer(
             font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + PANEL_PADDING, areaLabelY)
         }
 
-        var y = panelTopY + PANEL_PADDING
-        val maxY = if (areaName != null && areaName.isNotBlank()) areaLabelY - font.lineHeight * 1.3f else panelBottomY - font.lineHeight / 2
+        var y = areaLabelY - font.lineHeight * 1.3f
+        val minY = panelTopY + PANEL_PADDING
+
+        // Draw area description only if it differs from last drawn (new area entered)
+        val shouldShowAreaDesc = areaDescription != null && areaDescription.isNotBlank() && areaDescription != lastDrawnAreaDescription
+        if (shouldShowAreaDesc) {
+            val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
+            val wrappedLines = splitText(areaDescription, maxChars)
+            for ((lineIdx, line) in wrappedLines.withIndex()) {
+                if (y < minY) break
+                font.color = TEXT_HIGHLIGHT
+                val displayLine = if (lineIdx == 0) "▸ $line" else line
+                font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
+                y -= font.lineHeight * 1.3f
+            }
+            lastDrawnAreaDescription = areaDescription
+        }
 
         val maxChars = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
         for ((text, color) in allItems) {
-            if (y > maxY) break
+            if (y < minY) break
             font.color = color
             val segments = text.split("\n")
+            var isFirstSegment = true
             for (segment in segments) {
                 if (segment.isBlank()) {
-                    y += font.lineHeight * 0.5f
+                    y -= font.lineHeight * 0.5f
+                    isFirstSegment = false
                     continue
                 }
                 val wrappedLines = splitText(segment, maxChars)
-                for (line in wrappedLines) {
-                    if (y > maxY) break
-                    font.draw(batch, line, panelX + PANEL_PADDING, y)
-                    y += font.lineHeight * 1.3f
+                for ((lineIdx, line) in wrappedLines.withIndex()) {
+                    if (y < minY) break
+                    val displayLine = if (isFirstSegment && lineIdx == 0) "• $line" else line
+                    font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
+                    y -= font.lineHeight * 1.3f
                 }
+                isFirstSegment = false
             }
         }
 
         if (triggers.isEmpty() && stories.isEmpty()) {
-            val hintY = panelTopY + PANEL_PADDING
-            if (hintY < maxY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
+            val hintY = areaLabelY - font.lineHeight * 2
+            if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
         }
         batch.end()
     }
@@ -244,8 +266,8 @@ class Renderer(
     private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<ItemView>, carriedItems: List<ItemView>, equippedItems: List<ItemView>) {
         val panelX = MARGIN + viewportW / 2.5f + MARGIN * 0.8f
         val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelTopY = panelBottomY - (viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4) + PANEL_PADDING * 2
         val panelW = viewportW / 3f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
+        val panelTopY = panelBottomY - panelH
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)

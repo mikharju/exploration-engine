@@ -47,26 +47,23 @@ class GameScreen(
 
     private val inputProcessor = object : InputProcessor {
         override fun keyDown(keycode: Int): Boolean {
+            Gdx.app.log("KeyDebug", "keyDown keycode=$keycode")
             if (keycode == com.badlogic.gdx.Input.Keys.F12) {
                 saveScreenshot()
                 return true
             }
             val vd = viewData ?: return false
+
+            // Arrow keys — non-printable, only fire keyDown
             var event = when (keycode) {
                 com.badlogic.gdx.Input.Keys.UP -> InputEvent.MoveDirection(Direction.North)
                 com.badlogic.gdx.Input.Keys.LEFT -> InputEvent.MoveDirection(Direction.West)
                 com.badlogic.gdx.Input.Keys.DOWN -> InputEvent.MoveDirection(Direction.South)
                 com.badlogic.gdx.Input.Keys.RIGHT -> InputEvent.MoveDirection(Direction.East)
-                com.badlogic.gdx.Input.Keys.W, 'W'.code, 'w'.code -> InputEvent.MoveDirection(Direction.North)
-                com.badlogic.gdx.Input.Keys.A, 'A'.code, 'a'.code -> InputEvent.MoveDirection(Direction.West)
-                com.badlogic.gdx.Input.Keys.S, 'S'.code, 's'.code -> InputEvent.MoveDirection(Direction.South)
-                com.badlogic.gdx.Input.Keys.D, 'D'.code, 'd'.code -> InputEvent.MoveDirection(Direction.East)
-                com.badlogic.gdx.Input.Keys.L, 'L'.code, 'l'.code -> InputEvent.Look
-                com.badlogic.gdx.Input.Keys.U, 'U'.code, 'u'.code -> InputEvent.Activate
-                com.badlogic.gdx.Input.Keys.I, 'I'.code, 'i'.code -> InputEvent.Inventory
                 else -> null
             }
 
+            // J — story viewer (non-printable key)
             if (event == null && keycode == com.badlogic.gdx.Input.Keys.J) {
                 val allStories = vd.storyMessages.filter { it.isNotBlank() }
                 if (allStories.isNotEmpty()) {
@@ -75,13 +72,8 @@ class GameScreen(
                 }
             }
 
-            if (event == null && keycode >= com.badlogic.gdx.Input.Keys.A && keycode <= com.badlogic.gdx.Input.Keys.Z) {
-                val letter = ('a' + (keycode - com.badlogic.gdx.Input.Keys.A)).toChar()
-                event = handleItemAction(letter, vd)
-            } else if (event == null && keycode >= com.badlogic.gdx.Input.Keys.NUM_0 && keycode <= com.badlogic.gdx.Input.Keys.NUM_9) {
-                val digit = ('0' + (keycode - com.badlogic.gdx.Input.Keys.NUM_0)).toChar()
-                event = handleDigitSelection(digit, vd)
-            } else if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE) {
+            // Escape — non-printable key
+            if (event == null && keycode == com.badlogic.gdx.Input.Keys.ESCAPE) {
                 when (overlayState) {
                     OverlayState.StoryViewer -> {
                         overlayState = OverlayState.Playing
@@ -89,6 +81,58 @@ class GameScreen(
                     }
                     else -> closeSelection()
                 }
+            }
+
+            if (event != null && gameRef != null) {
+                viewData = engine.tick(gameRef!!, event)
+                checkGameOver(viewData!!)
+                val vd = viewData!!
+                if (vd.storyMessages.size > storedStoryCount) {
+                    overlayState = OverlayState.StoryViewer
+                    pendingStories = vd.storyMessages.drop(storedStoryCount).filter { it.isNotBlank() }
+                }
+                storedStoryCount = vd.storyMessages.size
+            }
+            return true
+        }
+
+        override fun keyTyped(character: Char): Boolean {
+            Gdx.app.log("KeyDebug", "keyTyped char='$character' code=${character.code}")
+            val vd = viewData ?: return false
+            var event: InputEvent? = null
+
+            // Movement — printable chars only fire keyTyped (not keyDown)
+            when (character.lowercaseChar()) {
+                'w' -> event = InputEvent.MoveDirection(Direction.North)
+                'a' -> event = InputEvent.MoveDirection(Direction.West)
+                's' -> event = InputEvent.MoveDirection(Direction.South)
+                'd' -> event = InputEvent.MoveDirection(Direction.East)
+                'l' -> event = InputEvent.Look
+                'u' -> event = InputEvent.Activate
+                'i' -> event = InputEvent.Inventory
+            }
+
+            // g/p/e/r — item actions (may trigger selection overlay)
+            if (event == null) {
+                val action = InputMapper.handleItemKey(character, vd)
+                when (action) {
+                    is InputMapper.ItemAction.Event -> {
+                        viewData = engine.tick(gameRef!!, action.event)
+                        checkGameOver(viewData!!)
+                        updateStoryOverlay()
+                    }
+                    is InputMapper.ItemAction.Selection -> {
+                        selectionState = SelectionState(true, action.target, action.items)
+                        overlayState = OverlayState.Inventory
+                    }
+                    is InputMapper.ItemAction.Message -> {} // no-op for now
+                    null -> {}
+                }
+            }
+
+            // 1-9 — digit selection for multi-item prompts
+            if (event == null && character in '0'..'9') {
+                event = handleDigitSelection(character, vd)
             }
 
             if (event != null && gameRef != null) {
@@ -135,7 +179,6 @@ class GameScreen(
         }
 
         override fun keyUp(keycode: Int): Boolean = false
-        override fun keyTyped(character: Char): Boolean = false
         override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
         override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean = false
         override fun mouseMoved(screenX: Int, screenY: Int): Boolean = false

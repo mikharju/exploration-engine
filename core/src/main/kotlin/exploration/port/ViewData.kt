@@ -19,6 +19,7 @@ data class ViewData(
     val commandText: String,
     val triggerTexts: List<String>,
     val storyMessages: List<String> = emptyList(),
+    val areaDescription: String? = null,
     val health: Int,
     val maxHealth: Int,
     val currentAreaName: String,
