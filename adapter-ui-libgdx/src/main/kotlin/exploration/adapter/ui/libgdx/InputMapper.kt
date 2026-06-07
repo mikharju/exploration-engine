@@ -82,7 +82,7 @@ object InputMapper {
     fun mapTouchDirection(x: Float, y: Float, viewData: ViewData): InputEvent? {
         val centerX = GameScreen.VIEWPORT_W / 2f
 
-        // WASD-style layout: W above, S/A/D on same row (matching Renderer)
+        // WASD-style layout: W above, S/A/D on same row (matching LibgdxRenderBackend)
         val buttonY = GameScreen.DIRECTION_BTN_SIZE / 2f + 10f
         val spacing = GameScreen.DIRECTION_BTN_SIZE * 1.3f
         val southRowY = buttonY

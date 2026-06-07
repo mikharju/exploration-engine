@@ -5,22 +5,25 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import exploration.model.Direction
-import exploration.port.ItemView
-import exploration.port.ViewData
 
-/** Renders the game UI using SpriteBatch and ShapeRenderer. */
-class Renderer(
+/** libGDX implementation of RenderBackend. Wraps SpriteBatch/ShapeRenderer/Camera for rendering. */
+class LibgdxRenderBackend(
     private val batch: SpriteBatch,
     private val shapeRenderer: ShapeRenderer,
     private val camera: OrthographicCamera,
     private val viewportW: Float,
     private val viewportH: Float
-) {
+) : RenderBackend {
 
     companion object {
+        const val PANEL_PADDING = 20f
+        const val STATUS_BAR_WIDTH = 180f
+        const val BOTTOM_BAR_HEIGHT = 180f
+        const val DIRECTION_BTN_SIZE = 70f
+
         val BG_COLOR = Color(0.1f, 0.12f, 0.18f, 1f)
         val PANEL_BG = Color(0.05f, 0.06f, 0.09f, 0.85f)
         val BORDER_COLOR = Color(0.25f, 0.3f, 0.4f, 1f)
@@ -32,12 +35,6 @@ class Renderer(
         val HP_RED = Color(0.85f, 0.2f, 0.2f, 1f)
         val BUTTON_BG = Color(0.15f, 0.2f, 0.3f, 0.9f)
         val BUTTON_LOCKED = Color(0.12f, 0.12f, 0.18f, 0.7f)
-
-        const val MARGIN = 40f
-        const val PANEL_PADDING = 20f
-        const val STATUS_BAR_WIDTH = 180f
-        const val BOTTOM_BAR_HEIGHT = 180f
-        const val DIRECTION_BTN_SIZE = 70f
     }
 
     private val font: BitmapFont = try {
@@ -48,9 +45,11 @@ class Renderer(
     init { font.color = TEXT_WHITE }
 
     private val layout = GlyphLayout()
-    fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
+    override fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
 
-    fun render(viewData: ViewData, selectionState: SelectionState = SelectionState.inactive()) {
+    override val fontLineHeight: Float get() = font.lineHeight
+
+    override fun render(viewData: exploration.port.ViewData, selectionState: SelectionState) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
@@ -92,14 +91,22 @@ class Renderer(
         viewData.endGameMessage?.let { drawGameOverOverlay(it) }
     }
 
-    fun renderWithOverlay(viewData: ViewData, overlayName: String, selectionState: SelectionState = SelectionState.inactive()) {
+    override fun renderWithOverlay(viewData: exploration.port.ViewData, overlayName: String, selectionState: SelectionState) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         val withTrigger = viewData.copy(triggerTexts = listOf("[${overlayName}]"))
         render(withTrigger, selectionState)
     }
 
-    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive(), scrollLines: Int = 0, maxVisibleLines: Int = 50, currentPage: Int = 1, totalPages: Int = 1) {
+    override fun renderStoryViewer(
+        viewData: exploration.port.ViewData,
+        stories: List<String>,
+        selectionState: SelectionState,
+        scrollLines: Int,
+        maxVisibleLines: Int,
+        currentPage: Int,
+        totalPages: Int
+    ) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
@@ -114,19 +121,17 @@ class Renderer(
         batch.begin()
         font.color = TEXT_HIGHLIGHT
         val title = " Story Messages"
-        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - MARGIN)
+        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - RenderBackend.MARGIN)
 
-        // Calculate maxCharsPerLine based on available width
-        val maxWidthPx = (boxW - MARGIN * 2).toInt()
+        val maxWidthPx = (boxW - RenderBackend.MARGIN * 2).toInt()
         val maxCharsPerLine = if (maxWidthPx > 0) {
             val testStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             val testWidth = textWidth(testStr)
             ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
         } else 40
 
-        // Collect all lines with metadata for clean scrolling
         data class StoryLine(val storyIdx: Int, val lineNum: Int, val text: String, val isBlank: Boolean)
-        
+
         val allLines = mutableListOf<StoryLine>()
         for ((storyIdx, story) in stories.withIndex()) {
             if (story.isBlank()) continue
@@ -142,33 +147,29 @@ class Renderer(
             }
         }
 
-        // Clamp scroll to valid range
         val clampedScroll = scrollLines.coerceAtLeast(0).coerceAtMost(maxOf(allLines.size - maxVisibleLines, 0))
-
-        // Slice visible lines and draw from top of content area — no skip loop needed
         val visibleLines = allLines.slice(clampedScroll until minOf(clampedScroll + maxVisibleLines, allLines.size))
-        
-        var storyY = y + boxH - MARGIN - font.lineHeight * 1.5f
-        
+
+        var storyY = y + boxH - RenderBackend.MARGIN - font.lineHeight * 1.5f
+
         for (entry in visibleLines) {
-            if (storyY < y + MARGIN + font.lineHeight * 1.5f) break
-            
+            if (storyY < y + RenderBackend.MARGIN + font.lineHeight * 1.5f) break
+
             if (entry.isBlank) {
                 storyY -= font.lineHeight * 0.5f
             } else {
-                font.draw(batch, entry.text, x + MARGIN, storyY)
+                font.draw(batch, entry.text, x + RenderBackend.MARGIN, storyY)
                 storyY -= font.lineHeight * 1.3f
             }
         }
 
-        // Page indicator at bottom
         font.color = TEXT_DIM
         val hint = "Press ESC to close | ${currentPage} / $totalPages"
-        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + MARGIN)
+        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + RenderBackend.MARGIN)
         batch.end()
     }
 
-    fun renderGameOver(message: String) {
+    override fun renderGameOver(message: String) {
         drawBackgroundPass()
 
         val boxW = 600f; val boxH = 300f
@@ -180,13 +181,38 @@ class Renderer(
 
         batch.begin()
         font.color = TEXT_HIGHLIGHT
-        font.draw(batch, "Game Over", x + (boxW - textWidth("Game Over")) / 2f, y + boxH - MARGIN)
+        font.draw(batch, "Game Over", x + (boxW - textWidth("Game Over")) / 2f, y + boxH - RenderBackend.MARGIN)
         font.color = TEXT_WHITE
         val lines = splitText(message, (viewportW * 0.8f).toInt())
         for ((i, line) in lines.withIndex()) {
             val ly = y + boxH * 0.55f - (lines.size - 1 - i) * font.lineHeight
-            font.draw(batch, line, x + MARGIN, ly)
+            font.draw(batch, line, x + RenderBackend.MARGIN, ly)
         }
+        batch.end()
+    }
+
+    override fun renderQuitConfirm() {
+        drawBackgroundPass()
+
+        val boxW = 500f; val boxH = 200f
+        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
+        shapeRenderer.end()
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
+        shapeRenderer.end()
+
+        batch.begin()
+        font.color = TEXT_HIGHLIGHT
+        val title = "Are you sure you want to quit?"
+        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - RenderBackend.MARGIN)
+
+        font.color = TEXT_WHITE
+        val hint = "Press Y to confirm or N to cancel"
+        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + boxH * 0.5f)
         batch.end()
     }
 
@@ -203,8 +229,8 @@ class Renderer(
             triggers
         }
 
-        val panelX = MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
+        val panelX = RenderBackend.MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
+        val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - RenderBackend.MARGIN * 2 - PANEL_PADDING * 4
         val panelTopY = panelBottomY - panelH
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -264,10 +290,10 @@ class Renderer(
         batch.end()
     }
 
-    private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<ItemView>, carriedItems: List<ItemView>, equippedItems: List<ItemView>) {
-        val panelX = MARGIN + viewportW / 2.5f + MARGIN * 0.8f
+    private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<exploration.port.ItemView>, carriedItems: List<exploration.port.ItemView>, equippedItems: List<exploration.port.ItemView>) {
+        val panelX = RenderBackend.MARGIN + viewportW / 2.5f + RenderBackend.MARGIN * 0.8f
         val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelW = viewportW / 3f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - MARGIN * 2 - PANEL_PADDING * 4
+        val panelW = viewportW / 3f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - RenderBackend.MARGIN * 2 - PANEL_PADDING * 4
         val panelTopY = panelBottomY - panelH
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -323,7 +349,7 @@ class Renderer(
         batch.end()
     }
 
-    private fun drawBottomBarPass(exits: Map<Direction, exploration.port.ExitInfo?>, areaItems: List<ItemView>, carriedItems: List<ItemView>, equippedItems: List<ItemView>) {
+    private fun drawBottomBarPass(exits: Map<Direction, exploration.port.ExitInfo?>, areaItems: List<exploration.port.ItemView>, carriedItems: List<exploration.port.ItemView>, equippedItems: List<exploration.port.ItemView>) {
         val barY = 0f; val barH = BOTTOM_BAR_HEIGHT
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -332,7 +358,6 @@ class Renderer(
         val centerX = viewportW / 2; val buttonY = barY + DIRECTION_BTN_SIZE / 2 + 10f
         val radius = DIRECTION_BTN_SIZE / 2; val spacing = DIRECTION_BTN_SIZE * 1.3f
 
-        // WASD-style layout: W above, S/A/D on same row
         val southRowY = buttonY
         val northY = buttonY + spacing * 0.9f
         val buttonPositions = listOf(
@@ -370,7 +395,7 @@ class Renderer(
         }
 
         if (areaItems.isNotEmpty()) {
-            var itemX = MARGIN; val itemY = barH * 0.5f; font.color = TEXT_HIGHLIGHT
+            var itemX = RenderBackend.MARGIN; val itemY = barH * 0.5f; font.color = TEXT_HIGHLIGHT
             for ((i, item) in areaItems.withIndex()) if (!item.locked) {
                 val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label) + 20
             }
@@ -387,36 +412,11 @@ class Renderer(
         shapeRenderer.end()
 
         batch.begin()
-        font.color = TEXT_HIGHLIGHT; font.draw(batch, "Game Over", x + overlayW / 2f - textWidth("Game Over") / 2f, y + overlayH - MARGIN)
+        font.color = TEXT_HIGHLIGHT; font.draw(batch, "Game Over", x + overlayW / 2f - textWidth("Game Over") / 2f, y + overlayH - RenderBackend.MARGIN)
         batch.end()
     }
 
-    fun renderQuitConfirm() {
-        drawBackgroundPass()
-
-        val boxW = 500f; val boxH = 200f
-        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
-        shapeRenderer.end()
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
-        shapeRenderer.end()
-
-        batch.begin()
-        font.color = TEXT_HIGHLIGHT
-        val title = "Are you sure you want to quit?"
-        font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - MARGIN)
-
-        font.color = TEXT_WHITE
-        val hint = "Press Y to confirm or N to cancel"
-        font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + boxH * 0.5f)
-        batch.end()
-    }
-
-    fun splitText(text: String, maxChars: Int): List<String> {
+    override fun splitText(text: String, maxChars: Int): List<String> {
         if (maxChars <= 0) return listOf(text)
         val lines = mutableListOf<String>(); var remaining = text
         while (remaining.isNotEmpty()) {
@@ -428,8 +428,6 @@ class Renderer(
     }
 
     fun linesVisibleInHeight(height: Float): Int = (height / font.lineHeight).toInt().coerceAtLeast(1)
-
-    val fontLineHeight: Float get() = font.lineHeight
 
     fun dispose() { font.dispose() }
 }

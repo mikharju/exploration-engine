@@ -11,9 +11,13 @@ class GameEngineImpl(
     private val store: GameStateStore
 ) : GameEngine {
 
+    private var _tickCount = 0
+    override val tickCount: Int get() = _tickCount
+
     override fun start(scenarioId: String): GameRef = store.createGame(scenarioId)
 
     override fun tick(ref: GameRef, event: InputEvent): ViewData {
+        _tickCount++
         var state = store.loadGame(ref)
         if (state.endGameMessage != null) return makeEndView(state)
 
