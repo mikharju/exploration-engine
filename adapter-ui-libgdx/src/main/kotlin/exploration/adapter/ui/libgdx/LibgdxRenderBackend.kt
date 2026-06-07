@@ -384,15 +384,16 @@ class LibgdxRenderBackend(
             val arrow = when(dir) { Direction.North -> "^"; Direction.South -> "v"; Direction.West -> "<"; Direction.East -> ">" }
             val lockText = if (locked && exitInfo != null) "$arrow [LOCKED]" else arrow
             font.draw(batch, lockText, pos.first - textWidth(lockText) / 2f, pos.second + font.lineHeight * 0.3f)
+            @Suppress("UNNECESSARY_SAFE_CALL")
             if (!locked && exitInfo?.name?.isNotBlank() == true) {
-                val name = exitInfo.name!!.take(12); font.color = TEXT_DIM; font.draw(batch, name, pos.first - textWidth(name) / 2f, pos.second + radius + 5f)
+                val infoName = exitInfo.name ?: ""; val name = infoName.take(12); font.color = TEXT_DIM; font.draw(batch, name, pos.first - textWidth(name) / 2f, pos.second + radius + 5f)
             }
         }
 
         if (areaItems.isNotEmpty()) {
             var itemX = RenderBackend.MARGIN; val itemY = barH * 0.5f; font.color = TEXT_HIGHLIGHT
             for ((i, item) in areaItems.withIndex()) if (!item.locked) {
-                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label) + ITEM_SPACING
+                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX, itemY); itemX += textWidth(label) + ITEM_SPACING
             }
         }
         batch.end()

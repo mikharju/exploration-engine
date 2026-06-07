@@ -7,6 +7,7 @@ import exploration.port.InputEvent
 import exploration.port.ViewData
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -98,29 +99,29 @@ class LibgdxInputMapperTest {
     @Test
     fun `no area items shows nothing to grab message`() {
         val result = LibgdxInputMapper.handleItemKey('g', viewData())
-        assertTrue(result is LibgdxInputMapper.ItemAction.Message)
-        assertEquals("Nothing to grab here.", (result as LibgdxInputMapper.ItemAction.Message).text)
+        val msg = assertIs<LibgdxInputMapper.ItemAction.Message>(result)
+        assertEquals("Nothing to grab here.", msg.text)
     }
 
     @Test
     fun `no carried items shows nothing to drop message`() {
         val result = LibgdxInputMapper.handleItemKey('p', viewData())
-        assertTrue(result is LibgdxInputMapper.ItemAction.Message)
-        assertEquals("Nothing to drop.", (result as LibgdxInputMapper.ItemAction.Message).text)
+        val msg = assertIs<LibgdxInputMapper.ItemAction.Message>(result)
+        assertEquals("Nothing to drop.", msg.text)
     }
 
     @Test
     fun `no carried items shows nothing to equip message`() {
         val result = LibgdxInputMapper.handleItemKey('e', viewData())
-        assertTrue(result is LibgdxInputMapper.ItemAction.Message)
-        assertEquals("Nothing to equip.", (result as LibgdxInputMapper.ItemAction.Message).text)
+        val msg = assertIs<LibgdxInputMapper.ItemAction.Message>(result)
+        assertEquals("Nothing to equip.", msg.text)
     }
 
     @Test
     fun `no equipped items shows nothing equipped message`() {
         val result = LibgdxInputMapper.handleItemKey('r', viewData())
-        assertTrue(result is LibgdxInputMapper.ItemAction.Message)
-        assertEquals("Nothing equipped.", (result as LibgdxInputMapper.ItemAction.Message).text)
+        val msg = assertIs<LibgdxInputMapper.ItemAction.Message>(result)
+        assertEquals("Nothing equipped.", msg.text)
     }
 
     // Item actions - multiple items triggers selection
@@ -128,29 +129,29 @@ class LibgdxInputMapperTest {
     @Test
     fun `multiple area items trigger take selection`() {
         val result = LibgdxInputMapper.handleItemKey('g', viewData(areaItems = listOf(ItemView("x", ""), ItemView("y", ""))))
-        assertTrue(result is LibgdxInputMapper.ItemAction.Selection)
-        assertEquals(SelectionTarget.TAKE, (result as LibgdxInputMapper.ItemAction.Selection).target)
+        val sel = assertIs<LibgdxInputMapper.ItemAction.Selection>(result)
+        assertEquals(SelectionTarget.TAKE, sel.target)
     }
 
     @Test
     fun `multiple carried items trigger drop selection`() {
         val result = LibgdxInputMapper.handleItemKey('p', viewData(carriedItems = listOf(ItemView("a", ""), ItemView("b", ""))))
-        assertTrue(result is LibgdxInputMapper.ItemAction.Selection)
-        assertEquals(SelectionTarget.DROP, (result as LibgdxInputMapper.ItemAction.Selection).target)
+        val sel = assertIs<LibgdxInputMapper.ItemAction.Selection>(result)
+        assertEquals(SelectionTarget.DROP, sel.target)
     }
 
     @Test
     fun `multiple carried items trigger equip selection`() {
         val result = LibgdxInputMapper.handleItemKey('e', viewData(carriedItems = listOf(ItemView("a", ""), ItemView("b", ""))))
-        assertTrue(result is LibgdxInputMapper.ItemAction.Selection)
-        assertEquals(SelectionTarget.EQUIP, (result as LibgdxInputMapper.ItemAction.Selection).target)
+        val sel = assertIs<LibgdxInputMapper.ItemAction.Selection>(result)
+        assertEquals(SelectionTarget.EQUIP, sel.target)
     }
 
     @Test
     fun `multiple equipped items trigger unequip selection`() {
         val result = LibgdxInputMapper.handleItemKey('r', viewData(equippedItems = listOf(ItemView("a", ""), ItemView("b", ""))))
-        assertTrue(result is LibgdxInputMapper.ItemAction.Selection)
-        assertEquals(SelectionTarget.UNEQUIP, (result as LibgdxInputMapper.ItemAction.Selection).target)
+        val sel = assertIs<LibgdxInputMapper.ItemAction.Selection>(result)
+        assertEquals(SelectionTarget.UNEQUIP, sel.target)
     }
 
     // Case insensitive item keys
