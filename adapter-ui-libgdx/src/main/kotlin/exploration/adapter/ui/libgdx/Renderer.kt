@@ -99,7 +99,7 @@ class Renderer(
         render(withTrigger, selectionState)
     }
 
-    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive(), scrollY: Float = 0f, maxVisibleLines: Int = 50) {
+    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive(), scrollLines: Int = 0, maxVisibleLines: Int = 50, currentPage: Int = 1, totalPages: Int = 1) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
@@ -142,36 +142,28 @@ class Renderer(
             }
         }
 
-        // Use scrollY directly as starting position (offset from top margin)
-        var storyY = y + MARGIN + font.lineHeight + scrollY
+        // Clamp scroll to valid range
+        val clampedScroll = scrollLines.coerceAtLeast(0).coerceAtMost(maxOf(allLines.size - maxVisibleLines, 0))
 
-        // Draw visible lines from calculated position downward
-        var linesRendered = 0
-        val renderedStories = mutableSetOf<Int>()
+        // Slice visible lines and draw from top of content area — no skip loop needed
+        val visibleLines = allLines.slice(clampedScroll until minOf(clampedScroll + maxVisibleLines, allLines.size))
         
-        for (i in 0 until allLines.size) {
-            if (linesRendered >= maxVisibleLines || storyY > y + boxH - MARGIN - font.lineHeight) break
-            
-            val entry = allLines[i]
+        var storyY = y + boxH - MARGIN - font.lineHeight * 1.5f
+        
+        for (entry in visibleLines) {
+            if (storyY < y + MARGIN + font.lineHeight * 1.5f) break
             
             if (entry.isBlank) {
-                storyY += font.lineHeight * 0.5f
-                linesRendered++
-                continue
+                storyY -= font.lineHeight * 0.5f
+            } else {
+                font.draw(batch, entry.text, x + MARGIN, storyY)
+                storyY -= font.lineHeight * 1.3f
             }
-
-            val displayLine = if (!renderedStories.contains(entry.storyIdx) && entry.lineNum == 0) {
-                renderedStories.add(entry.storyIdx)
-                "${entry.storyIdx + 1}. ${entry.text}"
-            } else entry.text
-            
-            font.draw(batch, displayLine, x + MARGIN, storyY)
-            storyY += font.lineHeight * 1.3f
-            linesRendered++
         }
 
+        // Page indicator at bottom
         font.color = TEXT_DIM
-        val hint = "Press ESC to close"
+        val hint = "Press ESC to close | ${currentPage} / $totalPages"
         font.draw(batch, hint, x + (boxW - textWidth(hint)) / 2f, y + MARGIN)
         batch.end()
     }

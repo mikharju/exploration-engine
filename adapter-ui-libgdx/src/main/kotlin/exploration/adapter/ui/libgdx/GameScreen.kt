@@ -38,7 +38,8 @@ class GameScreen(
     private var selectionState: SelectionState = SelectionState.inactive()
     private var storedStoryCount: Int = 0
     private var pendingStories: List<String> = emptyList()
-    private var storyScrollY: Float = 0f
+    private var currentStoryIndex: Int = 0
+    private var storyScrollLines: Int = 0
     private var messagePanelScrollOffset: Int = 0
 
     private val camera: OrthographicCamera = OrthographicCamera()
@@ -55,14 +56,32 @@ class GameScreen(
             }
             val vd = viewData ?: return false
 
+            // Check for new stories while in StoryViewer and append them
+            if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                val allStories = vd.storyMessages.filter { it.isNotBlank() }
+                if (allStories.size > pendingStories.size) {
+                    pendingStories = allStories
+                    currentStoryIndex = allStories.size - 1
+                    storyScrollLines = 0
+                }
+            }
+
             // StoryViewer scrolling — Page Up/Down, arrows only (W/S handled in keyTyped)
             if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
-                val lineHeight = renderer.fontLineHeight
                 when (keycode) {
-                    com.badlogic.gdx.Input.Keys.PAGE_UP -> storyScrollY = (storyScrollY - 5 * lineHeight * 1.3f).coerceAtLeast(0f)
-                    com.badlogic.gdx.Input.Keys.PAGE_DOWN -> storyScrollY = (storyScrollY + 5 * lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
-                    com.badlogic.gdx.Input.Keys.UP -> storyScrollY = (storyScrollY - lineHeight * 1.3f).coerceAtLeast(0f)
-                    com.badlogic.gdx.Input.Keys.DOWN -> storyScrollY = (storyScrollY + lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
+                    com.badlogic.gdx.Input.Keys.PAGE_UP -> storyScrollLines = (storyScrollLines - 5).coerceAtLeast(0)
+                    com.badlogic.gdx.Input.Keys.PAGE_DOWN -> storyScrollLines = (storyScrollLines + 5).coerceAtMost(getMaxStoryScroll())
+                    com.badlogic.gdx.Input.Keys.UP -> storyScrollLines = (storyScrollLines - 1).coerceAtLeast(0)
+                    com.badlogic.gdx.Input.Keys.DOWN -> storyScrollLines = (storyScrollLines + 1).coerceAtMost(getMaxStoryScroll())
+                    com.badlogic.gdx.Input.Keys.LEFT -> {
+                        currentStoryIndex = (currentStoryIndex - 1).coerceAtLeast(0)
+                        storyScrollLines = 0
+                    }
+                    com.badlogic.gdx.Input.Keys.RIGHT -> {
+                        currentStoryIndex = (currentStoryIndex + 1).coerceAtMost(pendingStories.size - 1)
+                        storyScrollLines = 0
+                    }
+                    else -> {}
                 }
             }
 
@@ -82,6 +101,8 @@ class GameScreen(
                 if (allStories.isNotEmpty()) {
                     overlayState = OverlayState.StoryViewer
                     pendingStories = allStories
+                    currentStoryIndex = 0
+                    storyScrollLines = 0
                 }
             }
 
@@ -126,20 +147,29 @@ class GameScreen(
             var event: InputEvent? = null
 
             // Movement — printable chars only fire keyTyped (not keyDown)
-            val lineHeight = renderer.fontLineHeight
             when (character.lowercaseChar()) {
                 'w' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
-                    storyScrollY = (storyScrollY - lineHeight * 1.3f).coerceAtLeast(0f)
+                    storyScrollLines = (storyScrollLines - 1).coerceAtLeast(0)
                 } else {
                     event = InputEvent.MoveDirection(Direction.North)
                 }
-                'a' -> event = InputEvent.MoveDirection(Direction.West)
+                'a' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                    currentStoryIndex = (currentStoryIndex - 1).coerceAtLeast(0)
+                    storyScrollLines = 0
+                } else {
+                    event = InputEvent.MoveDirection(Direction.West)
+                }
                 's' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
-                    storyScrollY = (storyScrollY + lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
+                    storyScrollLines = (storyScrollLines + 1).coerceAtMost(getMaxStoryScroll())
                 } else {
                     event = InputEvent.MoveDirection(Direction.South)
                 }
-                'd' -> event = InputEvent.MoveDirection(Direction.East)
+                'd' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                    currentStoryIndex = (currentStoryIndex + 1).coerceAtMost(pendingStories.size - 1)
+                    storyScrollLines = 0
+                } else {
+                    event = InputEvent.MoveDirection(Direction.East)
+                }
                 'l' -> event = InputEvent.Look
                 'u' -> event = InputEvent.Activate
                 'i' -> event = InputEvent.Inventory
@@ -300,7 +330,9 @@ class GameScreen(
         storedStoryCount = vd.storyMessages.size
     }
 
-    private fun totalStoryY(): Float {
+    private fun getMaxStoryScroll(): Int {
+        if (pendingStories.isEmpty() || currentStoryIndex < 0 || currentStoryIndex >= pendingStories.size) return 0
+        val story = pendingStories[currentStoryIndex]
         val boxW = 700f
         val maxWidthPx = (boxW - Renderer.MARGIN * 2).toInt()
         val maxCharsPerLine = if (maxWidthPx > 0) {
@@ -309,25 +341,19 @@ class GameScreen(
             ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
         } else 40
 
-        var ySpace = 0f
-        for (story in pendingStories) {
-            if (story.isBlank()) continue
-            for (segment in story.split("\n")) {
-                if (segment.isBlank()) {
-                    ySpace += renderer.fontLineHeight * 0.5f
-                } else {
-                    val wrapped = renderer.splitText(segment, maxCharsPerLine)
-                    ySpace += wrapped.size * renderer.fontLineHeight * 1.3f
-                }
+        var lineCount = 0
+        if (story.isBlank()) return 0
+        for (segment in story.split("\n")) {
+            if (segment.isBlank()) {
+                lineCount += 1
+            } else {
+                lineCount += renderer.splitText(segment, maxCharsPerLine).size
             }
         }
-        return ySpace
-    }
-
-    private fun getVisibleY(): Float {
         val boxH = 500f
         val availableHeight = boxH - Renderer.MARGIN * 2 - renderer.fontLineHeight
-        return availableHeight
+        val maxVisibleLines = (availableHeight / (renderer.fontLineHeight * 1.3f)).toInt().coerceAtLeast(1)
+        return maxOf(lineCount - maxVisibleLines, 0)
     }
 
     private fun renderGameContent() {
@@ -338,10 +364,10 @@ class GameScreen(
                 renderer.renderWithOverlay(vd, overlayState.name, selectionState)
             OverlayState.StoryViewer -> {
                 val boxH = 500f
-                // Available height for content (box minus title area at top and hint at bottom)
                 val availableHeight = boxH - Renderer.MARGIN * 2 - renderer.fontLineHeight
                 val maxVisibleLines = (availableHeight / (renderer.fontLineHeight * 1.3f)).toInt().coerceAtLeast(1)
-                renderer.renderStoryViewer(viewData!!, pendingStories, selectionState, storyScrollY, maxVisibleLines)
+                val currentStory = if (currentStoryIndex in pendingStories.indices) pendingStories[currentStoryIndex] else ""
+                renderer.renderStoryViewer(viewData!!, listOf(currentStory), selectionState, storyScrollLines, maxVisibleLines, currentStoryIndex + 1, pendingStories.size)
             }
             OverlayState.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
