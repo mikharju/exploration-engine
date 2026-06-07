@@ -32,6 +32,8 @@ class GamePresenter(
     var storyScrollLines: Int = 0
         private set
 
+    var shouldQuit: Boolean = false
+
     private var gameRef: GameRef? = null
     private var storedStoryCount: Int = 0
 
@@ -52,7 +54,7 @@ class GamePresenter(
         if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
             when (keycode) {
                 GdxInput.Keys.PAGE_UP -> storyScrollLines = (storyScrollLines - 5).coerceAtLeast(0)
-                GdxInput.Keys.PAGE_DOWN -> storyScrollLines = (storyScrollLines + 1).coerceAtMost(getMaxStoryScroll(backend))
+                GdxInput.Keys.PAGE_DOWN -> storyScrollLines = (storyScrollLines + 5).coerceAtMost(getMaxStoryScroll(backend))
                 GdxInput.Keys.UP -> storyScrollLines = (storyScrollLines - 1).coerceAtLeast(0)
                 GdxInput.Keys.DOWN -> storyScrollLines = (storyScrollLines + 1).coerceAtMost(getMaxStoryScroll(backend))
                 GdxInput.Keys.LEFT -> {
@@ -115,7 +117,7 @@ class GamePresenter(
         // Y/N — quit confirmation dialog
         if (overlayState == OverlayState.QuitConfirm) {
             when (character.lowercaseChar()) {
-                'y' -> { /* handled by GameScreen */ }
+                'y' -> shouldQuit = true
                 'n' -> overlayState = OverlayState.Playing
             }
             return true

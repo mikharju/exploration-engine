@@ -49,8 +49,12 @@ class GameScreen(
         }
 
         override fun keyTyped(character: Char): Boolean {
-            presenter.handleKeyTyped(character, renderer)
-            return true
+            val handled = presenter.handleKeyTyped(character, renderer)
+            if (presenter.shouldQuit) {
+                presenter.shouldQuit = false
+                Gdx.app.exit()
+            }
+            return handled
         }
 
         override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
