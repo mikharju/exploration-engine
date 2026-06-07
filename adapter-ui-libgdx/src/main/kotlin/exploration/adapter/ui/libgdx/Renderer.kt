@@ -48,7 +48,7 @@ class Renderer(
     init { font.color = TEXT_WHITE }
 
     private val layout = GlyphLayout()
-    private fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
+    fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
 
     fun render(viewData: ViewData, selectionState: SelectionState = SelectionState.inactive()) {
         batch.setProjectionMatrix(camera.combined)
@@ -99,7 +99,7 @@ class Renderer(
         render(withTrigger, selectionState)
     }
 
-    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive()) {
+    fun renderStoryViewer(viewData: ViewData, stories: List<String>, selectionState: SelectionState = SelectionState.inactive(), scrollY: Float = 0f, maxVisibleLines: Int = 50) {
         batch.setProjectionMatrix(camera.combined)
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
@@ -116,7 +116,7 @@ class Renderer(
         val title = " Story Messages"
         font.draw(batch, title, x + (boxW - textWidth(title)) / 2f, y + boxH - MARGIN)
 
-        var storyY = y + boxH * 0.75f
+        // Calculate maxCharsPerLine based on available width
         val maxWidthPx = (boxW - MARGIN * 2).toInt()
         val maxCharsPerLine = if (maxWidthPx > 0) {
             val testStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -124,29 +124,50 @@ class Renderer(
             ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
         } else 40
 
-        val maxStoriesToShow = 50
-        val storiesToRender = if (stories.size > maxStoriesToShow) stories.takeLast(maxStoriesToShow) else stories
-        for ((i, story) in storiesToRender.withIndex()) {
+        // Collect all lines with metadata for clean scrolling
+        data class StoryLine(val storyIdx: Int, val lineNum: Int, val text: String, val isBlank: Boolean)
+        
+        val allLines = mutableListOf<StoryLine>()
+        for ((storyIdx, story) in stories.withIndex()) {
             if (story.isBlank()) continue
-            font.color = TEXT_WHITE
-            val segments = story.split("\n")
-            var isFirstSegment = true
-            for (segment in segments) {
+            for (segment in story.split("\n")) {
                 if (segment.isBlank()) {
-                    storyY -= font.lineHeight * 0.5f
-                    isFirstSegment = false
-                    continue
+                    allLines.add(StoryLine(storyIdx, -1, "", true))
+                } else {
+                    val wrapped = splitText(segment, maxCharsPerLine)
+                    for ((lineNum, text) in wrapped.withIndex()) {
+                        allLines.add(StoryLine(storyIdx, lineNum, text, false))
+                    }
                 }
-                val wrappedLines = splitText(segment, maxCharsPerLine)
-                for ((lineIdx, line) in wrappedLines.withIndex()) {
-                    if (storyY < y + MARGIN + font.lineHeight) break
-                    val displayLine = if (isFirstSegment && lineIdx == 0) "${i + 1}. $line" else line
-                    font.draw(batch, displayLine, x + MARGIN, storyY)
-                    storyY -= font.lineHeight * 1.3f
-                }
-                isFirstSegment = false
             }
-            storyY -= font.lineHeight * 0.5f
+        }
+
+        // Use scrollY directly as starting position (offset from top margin)
+        var storyY = y + MARGIN + font.lineHeight + scrollY
+
+        // Draw visible lines from calculated position downward
+        var linesRendered = 0
+        val renderedStories = mutableSetOf<Int>()
+        
+        for (i in 0 until allLines.size) {
+            if (linesRendered >= maxVisibleLines || storyY > y + boxH - MARGIN - font.lineHeight) break
+            
+            val entry = allLines[i]
+            
+            if (entry.isBlank) {
+                storyY += font.lineHeight * 0.5f
+                linesRendered++
+                continue
+            }
+
+            val displayLine = if (!renderedStories.contains(entry.storyIdx) && entry.lineNum == 0) {
+                renderedStories.add(entry.storyIdx)
+                "${entry.storyIdx + 1}. ${entry.text}"
+            } else entry.text
+            
+            font.draw(batch, displayLine, x + MARGIN, storyY)
+            storyY += font.lineHeight * 1.3f
+            linesRendered++
         }
 
         font.color = TEXT_DIM
@@ -403,7 +424,7 @@ class Renderer(
         batch.end()
     }
 
-    private fun splitText(text: String, maxChars: Int): List<String> {
+    fun splitText(text: String, maxChars: Int): List<String> {
         if (maxChars <= 0) return listOf(text)
         val lines = mutableListOf<String>(); var remaining = text
         while (remaining.isNotEmpty()) {
@@ -413,6 +434,10 @@ class Renderer(
         }
         return lines
     }
+
+    fun linesVisibleInHeight(height: Float): Int = (height / font.lineHeight).toInt().coerceAtLeast(1)
+
+    val fontLineHeight: Float get() = font.lineHeight
 
     fun dispose() { font.dispose() }
 }

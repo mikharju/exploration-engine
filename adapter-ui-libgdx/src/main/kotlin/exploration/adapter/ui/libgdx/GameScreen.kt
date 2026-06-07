@@ -38,6 +38,8 @@ class GameScreen(
     private var selectionState: SelectionState = SelectionState.inactive()
     private var storedStoryCount: Int = 0
     private var pendingStories: List<String> = emptyList()
+    private var storyScrollY: Float = 0f
+    private var messagePanelScrollOffset: Int = 0
 
     private val camera: OrthographicCamera = OrthographicCamera()
     private val viewport: FitViewport = FitViewport(VIEWPORT_W, VIEWPORT_H, camera)
@@ -53,12 +55,24 @@ class GameScreen(
             }
             val vd = viewData ?: return false
 
-            // Arrow keys — non-printable, only fire keyDown
-            var event = when (keycode) {
-                com.badlogic.gdx.Input.Keys.UP -> InputEvent.MoveDirection(Direction.North)
-                com.badlogic.gdx.Input.Keys.LEFT -> InputEvent.MoveDirection(Direction.West)
-                com.badlogic.gdx.Input.Keys.DOWN -> InputEvent.MoveDirection(Direction.South)
-                com.badlogic.gdx.Input.Keys.RIGHT -> InputEvent.MoveDirection(Direction.East)
+            // StoryViewer scrolling — Page Up/Down, arrows only (W/S handled in keyTyped)
+            if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                val lineHeight = renderer.fontLineHeight
+                when (keycode) {
+                    com.badlogic.gdx.Input.Keys.PAGE_UP -> storyScrollY = (storyScrollY - 5 * lineHeight * 1.3f).coerceAtLeast(0f)
+                    com.badlogic.gdx.Input.Keys.PAGE_DOWN -> storyScrollY = (storyScrollY + 5 * lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
+                    com.badlogic.gdx.Input.Keys.UP -> storyScrollY = (storyScrollY - lineHeight * 1.3f).coerceAtLeast(0f)
+                    com.badlogic.gdx.Input.Keys.DOWN -> storyScrollY = (storyScrollY + lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
+                }
+            }
+
+            // Arrow keys — non-printable, only fire keyDown (but not when StoryViewer is active)
+            var event = when {
+                overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty() -> null
+                keycode == com.badlogic.gdx.Input.Keys.UP -> InputEvent.MoveDirection(Direction.North)
+                keycode == com.badlogic.gdx.Input.Keys.LEFT -> InputEvent.MoveDirection(Direction.West)
+                keycode == com.badlogic.gdx.Input.Keys.DOWN -> InputEvent.MoveDirection(Direction.South)
+                keycode == com.badlogic.gdx.Input.Keys.RIGHT -> InputEvent.MoveDirection(Direction.East)
                 else -> null
             }
 
@@ -112,10 +126,19 @@ class GameScreen(
             var event: InputEvent? = null
 
             // Movement — printable chars only fire keyTyped (not keyDown)
+            val lineHeight = renderer.fontLineHeight
             when (character.lowercaseChar()) {
-                'w' -> event = InputEvent.MoveDirection(Direction.North)
+                'w' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                    storyScrollY = (storyScrollY - lineHeight * 1.3f).coerceAtLeast(0f)
+                } else {
+                    event = InputEvent.MoveDirection(Direction.North)
+                }
                 'a' -> event = InputEvent.MoveDirection(Direction.West)
-                's' -> event = InputEvent.MoveDirection(Direction.South)
+                's' -> if (overlayState == OverlayState.StoryViewer && pendingStories.isNotEmpty()) {
+                    storyScrollY = (storyScrollY + lineHeight * 1.3f).coerceAtMost(maxOf(totalStoryY() - getVisibleY(), 0f))
+                } else {
+                    event = InputEvent.MoveDirection(Direction.South)
+                }
                 'd' -> event = InputEvent.MoveDirection(Direction.East)
                 'l' -> event = InputEvent.Look
                 'u' -> event = InputEvent.Activate
@@ -277,14 +300,49 @@ class GameScreen(
         storedStoryCount = vd.storyMessages.size
     }
 
+    private fun totalStoryY(): Float {
+        val boxW = 700f
+        val maxWidthPx = (boxW - Renderer.MARGIN * 2).toInt()
+        val maxCharsPerLine = if (maxWidthPx > 0) {
+            val testStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            val testWidth = renderer.textWidth(testStr)
+            ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
+        } else 40
+
+        var ySpace = 0f
+        for (story in pendingStories) {
+            if (story.isBlank()) continue
+            for (segment in story.split("\n")) {
+                if (segment.isBlank()) {
+                    ySpace += renderer.fontLineHeight * 0.5f
+                } else {
+                    val wrapped = renderer.splitText(segment, maxCharsPerLine)
+                    ySpace += wrapped.size * renderer.fontLineHeight * 1.3f
+                }
+            }
+        }
+        return ySpace
+    }
+
+    private fun getVisibleY(): Float {
+        val boxH = 500f
+        val availableHeight = boxH - Renderer.MARGIN * 2 - renderer.fontLineHeight
+        return availableHeight
+    }
+
     private fun renderGameContent() {
         val vd = viewData ?: return
         when (overlayState) {
             OverlayState.Playing -> renderer.render(vd, selectionState)
             OverlayState.Inventory ->
                 renderer.renderWithOverlay(vd, overlayState.name, selectionState)
-            OverlayState.StoryViewer ->
-                renderer.renderStoryViewer(viewData!!, pendingStories, selectionState)
+            OverlayState.StoryViewer -> {
+                val boxH = 500f
+                // Available height for content (box minus title area at top and hint at bottom)
+                val availableHeight = boxH - Renderer.MARGIN * 2 - renderer.fontLineHeight
+                val maxVisibleLines = (availableHeight / (renderer.fontLineHeight * 1.3f)).toInt().coerceAtLeast(1)
+                renderer.renderStoryViewer(viewData!!, pendingStories, selectionState, storyScrollY, maxVisibleLines)
+            }
             OverlayState.GameOver -> vd.endGameMessage?.let { msg ->
                 renderer.renderGameOver(msg)
             } ?: renderer.render(vd, selectionState)
