@@ -201,22 +201,18 @@ class Renderer(
         batch.begin()
 
         val maxMessages = 50
-        val allTriggers = if (filteredTriggers.size > maxMessages / 3) filteredTriggers.takeLast(maxMessages / 3) else filteredTriggers
-        val remainingSlots = maxMessages - allTriggers.size
-        val allStories = if (stories.size > remainingSlots / 2) stories.takeLast(remainingSlots / 2) else stories
 
-        val historyToRender = if (messageHistory.size > remainingSlots / 2) messageHistory.takeLast(remainingSlots / 2) else messageHistory
-
-        val allItems = mutableListOf<Pair<String, Color>>()
-        for (msg in historyToRender) {
-            allItems.add(msg to TEXT_WHITE)
+        val allItems = mutableListOf<String>()
+        for (trigger in filteredTriggers) {
+            allItems.add(trigger)
         }
-        for (trigger in allTriggers.reversed()) {
-            allItems.add(trigger to TEXT_WHITE)
+        for (msg in messageHistory) {
+            allItems.add(msg)
         }
-        for (story in allStories.reversed()) {
-            allItems.add(story to TEXT_DIM)
+        if (allItems.size > maxMessages) {
+            allItems.subList(0, allItems.size - maxMessages).clear()
         }
+        allItems.reverse()
 
         val areaLabelY = panelBottomY - font.lineHeight / 2
         if (areaName != null && areaName.isNotBlank()) {
@@ -227,9 +223,9 @@ class Renderer(
         val minY = panelTopY + PANEL_PADDING
 
         val maxCharsForTriggers = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
-        for ((text, color) in allItems) {
+        for (text in allItems) {
             if (y < minY) break
-            font.color = color
+            font.color = TEXT_WHITE
             val segments = text.split("\n")
             var isFirstSegment = true
             for (segment in segments) {
@@ -241,15 +237,14 @@ class Renderer(
                 val wrappedLines = splitText(segment, maxCharsForTriggers)
                 for ((lineIdx, line) in wrappedLines.withIndex()) {
                     if (y < minY) break
-                    val displayLine = if (isFirstSegment && lineIdx == 0) "• $line" else line
-                    font.draw(batch, displayLine, panelX + PANEL_PADDING, y)
+                    font.draw(batch, line, panelX + PANEL_PADDING, y)
                     y -= font.lineHeight * 1.3f
                 }
                 isFirstSegment = false
             }
         }
 
-        if (filteredTriggers.isEmpty() && stories.isEmpty() && historyToRender.isEmpty()) {
+        if (allItems.isEmpty()) {
             val hintY = areaLabelY - font.lineHeight * 2
             if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
         }
