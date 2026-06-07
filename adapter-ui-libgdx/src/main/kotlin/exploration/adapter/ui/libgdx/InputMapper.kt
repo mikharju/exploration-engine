@@ -79,24 +79,24 @@ object InputMapper {
         }
     }
 
-    fun mapTouchDirection(x: Float, y: Float, viewData: ViewData): InputEvent? {
-        val centerX = GameScreen.VIEWPORT_W / 2f
+    fun mapTouchDirection(x: Float, y: Float, viewData: ViewData, layout: LayoutConfig): InputEvent? {
+        val centerX = layout.viewportW / 2f
 
         // WASD-style layout: W above, S/A/D on same row (matching LibgdxRenderBackend)
-        val buttonY = GameScreen.DIRECTION_BTN_SIZE / 2f + 10f
-        val spacing = GameScreen.DIRECTION_BTN_SIZE * 1.3f
+        val buttonY = layout.directionBtnSize / 2f + 10f
+        val spacing = layout.directionBtnSize * 1.3f
         val southRowY = buttonY
         val northY = buttonY + spacing * 0.9f
         val directions: List<Pair<Direction, Pair<Float, Float>>> = listOf(
-            Direction.North to (centerX to (northY)),
-            Direction.West to ((centerX - spacing) to (southRowY)),
-            Direction.South to (centerX to (southRowY)),
-            Direction.East to ((centerX + spacing) to (southRowY))
+            Direction.North to (centerX to northY),
+            Direction.West to ((centerX - spacing) to southRowY),
+            Direction.South to (centerX to southRowY),
+            Direction.East to ((centerX + spacing) to southRowY)
         )
 
         for ((dir, pos) in directions) {
             val exitInfo = viewData.exits[dir] ?: continue
-            if (!exitInfo.blocked && isCircleHit(pos.first, pos.second, x, y, 35f)) {
+            if (!exitInfo.blocked && isCircleHit(pos.first, pos.second, x, y, layout.touchButtonRadius)) {
                 return InputEvent.MoveDirection(dir)
             }
         }
@@ -104,41 +104,41 @@ object InputMapper {
         return null
     }
 
-    fun mapTouchItem(x: Float, y: Float, viewData: ViewData): ItemActionResult? {
-        val rightPanelLeft = calculateRightPanelLeft()
+    fun mapTouchItem(x: Float, y: Float, viewData: ViewData, layout: LayoutConfig): ItemActionResult? {
+        val rightPanelLeft = calculateRightPanelLeft(layout)
         
         // Carried items - clickable in the status panel area
-        var itemY = 500f
+        var itemY = layout.carriedItemStartY
         for (item in viewData.carriedItems) {
-            if (isRectHit(x, y, rightPanelLeft + 20f, itemY, 340f, 36f)) {
+            if (isRectHit(x, y, rightPanelLeft + 20f, itemY, layout.itemHitWidth, layout.itemHitHeight)) {
                 return ItemActionResult.Equip(item.name)
             }
-            itemY -= 44f
+            itemY -= layout.itemSpacing
         }
 
         // Equipped items
         for (item in viewData.equippedItems) {
-            if (isRectHit(x, y, rightPanelLeft + 20f, itemY, 340f, 36f)) {
+            if (isRectHit(x, y, rightPanelLeft + 20f, itemY, layout.itemHitWidth, layout.itemHitHeight)) {
                 return ItemActionResult.Unequip(item.name)
             }
-            itemY -= 44f
+            itemY -= layout.itemSpacing
         }
 
         // Area items - shown at bottom of message panel
-        var areaItemY = 380f
+        var areaItemY = layout.areaItemStartY
         for (item in viewData.areaItems.filterNot { it.locked }) {
-            if (isRectHit(x, y, GameScreen.MARGIN + 20f, areaItemY, 340f, 36f)) {
+            if (isRectHit(x, y, RenderBackend.MARGIN + 20f, areaItemY, layout.itemHitWidth, layout.itemHitHeight)) {
                 return ItemActionResult.Take(item.name)
             }
-            areaItemY -= 44f
+            areaItemY -= layout.itemSpacing
         }
 
         return null
     }
 
-    private fun calculateRightPanelLeft(): Float {
-        val usableWidth = GameScreen.VIEWPORT_W - 2 * GameScreen.MARGIN
-        return GameScreen.MARGIN + usableWidth * GameScreen.MESSAGE_PANEL_WIDTH_RATIO + GameScreen.PANEL_GAP / 2f
+    private fun calculateRightPanelLeft(layout: LayoutConfig): Float {
+        val usableWidth = layout.viewportW - 2 * layout.margin
+        return layout.margin + usableWidth * layout.messagePanelWidthRatio + layout.panelGap / 2f
     }
 
     private fun isCircleHit(cx: Float, cy: Float, mx: Float, my: Float, r: Float): Boolean {

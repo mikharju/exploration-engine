@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -20,25 +21,21 @@ class GameScreen(
     scenarioPath: String
 ) : Screen {
 
-    companion object {
-        const val VIEWPORT_W = 1800f
-        const val VIEWPORT_H = 1100f
-        const val BOTTOM_BAR_HEIGHT = 180f
-        const val MARGIN = 20f
-        const val MESSAGE_PANEL_WIDTH_RATIO = 0.58f
-        const val PANEL_GAP = 30f
-        const val DIRECTION_BTN_SIZE = 70f
-    }
-
+    private val layout = LayoutConfig()
     private val presenter: GamePresenter = GamePresenter(engine, scenarioPath)
     private val camera: OrthographicCamera = OrthographicCamera()
-    private val viewport: FitViewport = FitViewport(VIEWPORT_W, VIEWPORT_H, camera)
+    private val viewport: FitViewport = FitViewport(layout.viewportW, layout.viewportH, camera)
     private val stage: Stage = Stage(viewport)
     private val batch: SpriteBatch = SpriteBatch()
     private val shapeRenderer: ShapeRenderer = ShapeRenderer()
+    private val font: BitmapFont = try {
+        BitmapFont(Gdx.files.internal("com/badlogic/gdx/utils/lsans-15.fnt"))
+    } catch (e: Exception) {
+        BitmapFont()
+    }
 
     private val renderer: LibgdxRenderBackend by lazy {
-        LibgdxRenderBackend(batch, shapeRenderer, camera, VIEWPORT_W, VIEWPORT_H)
+        LibgdxRenderBackend(batch, shapeRenderer, camera, font, layout)
     }
 
     private val inputProcessor = object : InputProcessor {
@@ -76,7 +73,7 @@ class GameScreen(
     }
 
     override fun show() {
-        camera.position.set(VIEWPORT_W / 2f, VIEWPORT_H / 2f, 0f)
+        camera.position.set(layout.viewportW / 2f, layout.viewportH / 2f, 0f)
     }
 
     override fun render(delta: Float) {
@@ -106,7 +103,7 @@ class GameScreen(
 
     private fun renderStoryViewer() {
         val vd = presenter.viewData ?: return
-        val boxH = 500f
+        val boxH = layout.storyBoxH
         val availableHeight = boxH - RenderBackend.MARGIN * 2 - renderer.fontLineHeight
         val maxVisibleLines = presenter.getVisibleLinesInHeight(availableHeight, renderer)
         val currentStory = if (presenter.currentStoryIndex in presenter.pendingStories.indices) {
@@ -121,7 +118,7 @@ class GameScreen(
 
     override fun resize(width: Int, height: Int) {
         viewport.update(width, height, true)
-        camera.position.set(VIEWPORT_W / 2f, VIEWPORT_H / 2f, 0f)
+        camera.position.set(layout.viewportW / 2f, layout.viewportH / 2f, 0f)
     }
 
     override fun pause() {}

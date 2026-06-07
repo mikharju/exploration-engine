@@ -13,7 +13,8 @@ import exploration.port.ViewData
  */
 class GamePresenter(
     private val engine: GameEngine,
-    private val scenarioPath: String
+    private val scenarioPath: String,
+    private val layout: LayoutConfig = LayoutConfig()
 ) {
 
     var viewData: ViewData? = null
@@ -186,7 +187,7 @@ class GamePresenter(
     fun handleTouchDown(x: Float, y: Float): Boolean {
         val vd = viewData ?: return false
 
-        var event = InputMapper.mapTouchDirection(x, y, vd)
+        var event = InputMapper.mapTouchDirection(x, y, vd, layout)
         if (event != null && gameRef != null) {
             viewData = engine.tick(gameRef!!, event)
             checkGameOver(viewData!!)
@@ -194,7 +195,7 @@ class GamePresenter(
             return true
         }
 
-        val actionResult = InputMapper.mapTouchItem(x, y, vd)
+        val actionResult = InputMapper.mapTouchItem(x, y, vd, layout)
         actionResult?.let { result ->
             val inputEvent = when (result) {
                 is ItemActionResult.Take -> InputEvent.TakeItem(result.itemName)

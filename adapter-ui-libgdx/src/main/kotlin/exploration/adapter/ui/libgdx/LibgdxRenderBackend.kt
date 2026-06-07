@@ -14,39 +14,13 @@ class LibgdxRenderBackend(
     private val batch: SpriteBatch,
     private val shapeRenderer: ShapeRenderer,
     private val camera: OrthographicCamera,
-    private val viewportW: Float,
-    private val viewportH: Float
+    private val font: BitmapFont,
+    private val layout: LayoutConfig
 ) : RenderBackend {
 
-    companion object {
-        const val PANEL_PADDING = 20f
-        const val STATUS_BAR_WIDTH = 180f
-        const val BOTTOM_BAR_HEIGHT = 180f
-        const val DIRECTION_BTN_SIZE = 70f
+    private val glyphLayout = GlyphLayout()
 
-        val BG_COLOR = Color(0.1f, 0.12f, 0.18f, 1f)
-        val PANEL_BG = Color(0.05f, 0.06f, 0.09f, 0.85f)
-        val BORDER_COLOR = Color(0.25f, 0.3f, 0.4f, 1f)
-        val TEXT_WHITE = Color(0.9f, 0.9f, 0.9f, 1f)
-        val TEXT_DIM = Color(0.4f, 0.45f, 0.55f, 1f)
-        val TEXT_HIGHLIGHT = Color(0.3f, 0.7f, 1f, 1f)
-        val HP_GREEN = Color(0.2f, 0.8f, 0.3f, 1f)
-        val HP_YELLOW = Color(0.9f, 0.7f, 0.1f, 1f)
-        val HP_RED = Color(0.85f, 0.2f, 0.2f, 1f)
-        val BUTTON_BG = Color(0.15f, 0.2f, 0.3f, 0.9f)
-        val BUTTON_LOCKED = Color(0.12f, 0.12f, 0.18f, 0.7f)
-    }
-
-    private val font: BitmapFont = try {
-        BitmapFont(Gdx.files.internal("com/badlogic/gdx/utils/lsans-15.fnt"))
-    } catch (e: Exception) {
-        BitmapFont()
-    }
-    init { font.color = TEXT_WHITE }
-
-    private val layout = GlyphLayout()
-    override fun textWidth(text: String): Float { layout.setText(font, text); return layout.width }
-
+    override fun textWidth(text: String): Float { glyphLayout.setText(font, text); return glyphLayout.width }
     override val fontLineHeight: Float get() = font.lineHeight
 
     override fun render(viewData: exploration.port.ViewData, selectionState: SelectionState) {
@@ -60,10 +34,10 @@ class LibgdxRenderBackend(
         drawBottomBarPass(viewData.exits, viewData.areaItems, viewData.carriedItems, viewData.equippedItems)
 
         batch.begin()
-        font.draw(batch, "WASD/Arrows: Move | L: Look | U: Activate | I: Inventory", 20f, viewportH - 15f)
+        font.draw(batch, "WASD/Arrows: Move | L: Look | U: Activate | I: Inventory", 20f, layout.viewportH - 15f)
         if (viewData.areaItems.isNotEmpty()) {
             val itemsStr = viewData.areaItems.joinToString(", ") { it.name }
-            font.draw(batch, "Items here: $itemsStr", 20f, viewportH / 2 + 60f)
+            font.draw(batch, "Items here: $itemsStr", 20f, layout.viewportH / 2 + 60f)
         }
 
         if (selectionState.active && selectionState.target != null) {
@@ -74,15 +48,15 @@ class LibgdxRenderBackend(
                 SelectionTarget.EQUIP -> "Equip which item? (1-${selectionState.items.size})"
             }
             font.color = TEXT_HIGHLIGHT
-            font.draw(batch, prompt, viewportW / 2f - textWidth(prompt) / 2f, viewportH * 0.65f)
+            font.draw(batch, prompt, layout.viewportW / 2f - textWidth(prompt) / 2f, layout.viewportH * 0.65f)
 
-            val startY = viewportH * 0.55f
+            val startY = layout.viewportH * 0.55f
             for ((i, item) in selectionState.items.withIndex()) {
                 val y = startY - i * font.lineHeight * 1.4f
-                if (y < BOTTOM_BAR_HEIGHT + 20f) break
+                if (y < layout.bottomBarHeight + 20f) break
                 val label = "${i + 1}. ${item.name}"
                 font.color = TEXT_WHITE
-                font.draw(batch, label, viewportW / 2f - textWidth(label) / 2f, y)
+                font.draw(batch, label, layout.viewportW / 2f - textWidth(label) / 2f, y)
             }
         }
 
@@ -111,8 +85,8 @@ class LibgdxRenderBackend(
         shapeRenderer.setProjectionMatrix(camera.combined)
         drawBackgroundPass()
 
-        val boxW = 700f; val boxH = 500f
-        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+        val boxW = layout.storyBoxW; val boxH = layout.storyBoxH
+        val x = (layout.viewportW - boxW) / 2; val y = (layout.viewportH - boxH) / 2
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         shapeRenderer.setColor(Color(PANEL_BG.r, PANEL_BG.g, PANEL_BG.b, 1f)); shapeRenderer.rect(x, y, boxW, boxH)
@@ -127,8 +101,8 @@ class LibgdxRenderBackend(
         val maxCharsPerLine = if (maxWidthPx > 0) {
             val testStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             val testWidth = textWidth(testStr)
-            ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, 200)
-        } else 40
+            ((testStr.length.toFloat() / testWidth) * maxWidthPx).toInt().coerceIn(1, MAX_WRAP_CHARS)
+        } else DEFAULT_MAX_WRAP_CHARS
 
         data class StoryLine(val storyIdx: Int, val lineNum: Int, val text: String, val isBlank: Boolean)
 
@@ -172,8 +146,8 @@ class LibgdxRenderBackend(
     override fun renderGameOver(message: String) {
         drawBackgroundPass()
 
-        val boxW = 600f; val boxH = 300f
-        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+        val boxW = layout.gameOverBoxW; val boxH = layout.gameOverBoxH
+        val x = (layout.viewportW - boxW) / 2; val y = (layout.viewportH - boxH) / 2
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(x, y, boxW, boxH)
@@ -183,7 +157,7 @@ class LibgdxRenderBackend(
         font.color = TEXT_HIGHLIGHT
         font.draw(batch, "Game Over", x + (boxW - textWidth("Game Over")) / 2f, y + boxH - RenderBackend.MARGIN)
         font.color = TEXT_WHITE
-        val lines = splitText(message, (viewportW * 0.8f).toInt())
+        val lines = splitText(message, (layout.viewportW * 0.8f).toInt())
         for ((i, line) in lines.withIndex()) {
             val ly = y + boxH * 0.55f - (lines.size - 1 - i) * font.lineHeight
             font.draw(batch, line, x + RenderBackend.MARGIN, ly)
@@ -194,11 +168,11 @@ class LibgdxRenderBackend(
     override fun renderQuitConfirm() {
         drawBackgroundPass()
 
-        val boxW = 500f; val boxH = 200f
-        val x = (viewportW - boxW) / 2; val y = (viewportH - boxH) / 2
+        val boxW = layout.quitConfirmBoxW; val boxH = layout.quitConfirmBoxH
+        val x = (layout.viewportW - boxW) / 2; val y = (layout.viewportH - boxH) / 2
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
+        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, layout.viewportW, layout.viewportH)
         shapeRenderer.end()
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -218,7 +192,7 @@ class LibgdxRenderBackend(
 
     private fun drawBackgroundPass() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(BG_COLOR); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
+        shapeRenderer.setColor(BG_COLOR); shapeRenderer.rect(0f, 0f, layout.viewportW, layout.viewportH)
         shapeRenderer.end()
     }
 
@@ -229,17 +203,15 @@ class LibgdxRenderBackend(
             triggers
         }
 
-        val panelX = RenderBackend.MARGIN; val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelW = viewportW / 2.5f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - RenderBackend.MARGIN * 2 - PANEL_PADDING * 4
+        val panelX = RenderBackend.MARGIN; val panelBottomY = layout.viewportH - layout.bottomBarHeight - layout.panelPadding * 2
+        val panelW = layout.viewportW / 2.5f; val panelH = layout.viewportH - layout.bottomBarHeight - RenderBackend.MARGIN * 2 - layout.panelPadding * 4
         val panelTopY = panelBottomY - panelH
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + layout.panelPadding * 2, panelW, panelH)
         shapeRenderer.end()
 
         batch.begin()
-
-        val maxMessages = 50
 
         val allItems = mutableListOf<String>()
         for (trigger in filteredTriggers) {
@@ -248,20 +220,29 @@ class LibgdxRenderBackend(
         for (msg in messageHistory) {
             allItems.add(msg)
         }
-        if (allItems.size > maxMessages) {
-            allItems.subList(0, allItems.size - maxMessages).clear()
+        if (allItems.size > layout.maxMessages) {
+            allItems.subList(0, allItems.size - layout.maxMessages).clear()
         }
         allItems.reverse()
 
+        drawAreaLabel(areaName, panelX, panelBottomY)
+
+        var y = panelBottomY - font.lineHeight * 1.3f
+        val minY = panelTopY + layout.panelPadding
+
+        val maxCharsForTriggers = (panelW - layout.panelPadding * 2).toInt() / 6.coerceAtLeast(1)
+        drawMessageLines(allItems, y, panelX, minY, maxCharsForTriggers)
+    }
+
+    private fun drawAreaLabel(areaName: String?, panelX: Float, panelBottomY: Float) {
         val areaLabelY = panelBottomY - font.lineHeight / 2
         if (areaName != null && areaName.isNotBlank()) {
-            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + PANEL_PADDING, areaLabelY)
+            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Area: $areaName", panelX + layout.panelPadding, areaLabelY)
         }
+    }
 
-        var y = areaLabelY - font.lineHeight * 1.3f
-        val minY = panelTopY + PANEL_PADDING
-
-        val maxCharsForTriggers = (panelW - PANEL_PADDING * 2).toInt() / 6.coerceAtLeast(1)
+    private fun drawMessageLines(allItems: List<String>, startY: Float, panelX: Float, minY: Float, maxCharsPerLine: Int) {
+        var y = startY
         for (text in allItems) {
             if (y < minY) break
             font.color = TEXT_WHITE
@@ -273,10 +254,10 @@ class LibgdxRenderBackend(
                     isFirstSegment = false
                     continue
                 }
-                val wrappedLines = splitText(segment, maxCharsForTriggers)
+                val wrappedLines = splitText(segment, maxCharsPerLine)
                 for ((lineIdx, line) in wrappedLines.withIndex()) {
                     if (y < minY) break
-                    font.draw(batch, line, panelX + PANEL_PADDING, y)
+                    font.draw(batch, line, panelX + layout.panelPadding, y)
                     y -= font.lineHeight * 1.3f
                 }
                 isFirstSegment = false
@@ -284,79 +265,94 @@ class LibgdxRenderBackend(
         }
 
         if (allItems.isEmpty()) {
-            val hintY = areaLabelY - font.lineHeight * 2
-            if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + PANEL_PADDING, hintY) }
+            val hintY = startY - font.lineHeight * 2
+            if (hintY > minY) { font.color = TEXT_DIM; font.draw(batch, "Press L to look around", panelX + layout.panelPadding, hintY) }
+        }
+    }
+
+    private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<exploration.port.ItemView>, carriedItems: List<exploration.port.ItemView>, equippedItems: List<exploration.port.ItemView>) {
+        val panelX = RenderBackend.MARGIN + layout.viewportW / 2.5f + RenderBackend.MARGIN * 0.8f
+        val panelBottomY = layout.viewportH - layout.bottomBarHeight - layout.panelPadding * 2
+        val panelW = layout.viewportW / 3f; val panelH = layout.viewportH - layout.bottomBarHeight - RenderBackend.MARGIN * 2 - layout.panelPadding * 4
+        val panelTopY = panelBottomY - panelH
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + layout.panelPadding * 2, panelW, panelH)
+        shapeRenderer.end()
+
+        var y = panelBottomY - font.lineHeight / 2
+        val minY = panelTopY + layout.panelPadding
+        drawHealthBar(health, maxHealth, panelX, y)
+
+        y -= font.lineHeight * 2f
+
+        batch.begin()
+        font.color = TEXT_DIM; font.draw(batch, "Explored: $exploredCount/$totalAreas | Devices: $activatedCount/$totalDevices", panelX + layout.panelPadding, y)
+
+        if (carriedItems.isNotEmpty()) {
+            y -= font.lineHeight * 2.5f
+            drawItemSection(carriedItems, "Carried:", panelX, y, minY)
+        }
+
+        if (equippedItems.isNotEmpty()) {
+            y -= font.lineHeight * 2f
+            drawEquippedSection(equippedItems, panelX, y, minY)
         }
         batch.end()
     }
 
-    private fun drawStatusPanelPass(health: Int, maxHealth: Int, exploredCount: Int, totalAreas: Int, activatedCount: Int, totalDevices: Int, statuses: Map<String, Int>, areaItems: List<exploration.port.ItemView>, carriedItems: List<exploration.port.ItemView>, equippedItems: List<exploration.port.ItemView>) {
-        val panelX = RenderBackend.MARGIN + viewportW / 2.5f + RenderBackend.MARGIN * 0.8f
-        val panelBottomY = viewportH - BOTTOM_BAR_HEIGHT - PANEL_PADDING * 2
-        val panelW = viewportW / 3f; val panelH = viewportH - BOTTOM_BAR_HEIGHT - RenderBackend.MARGIN * 2 - PANEL_PADDING * 4
-        val panelTopY = panelBottomY - panelH
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(panelX, panelBottomY - panelH + PANEL_PADDING * 2, panelW, panelH)
-        shapeRenderer.end()
-
-        var y = panelBottomY - font.lineHeight / 2
-        val minY = panelTopY + PANEL_PADDING
+    private fun drawHealthBar(health: Int, maxHealth: Int, panelX: Float, y: Float) {
         val healthPct = if (maxHealth > 0) health.toFloat() / maxHealth else 0f
         val hpColor = when { healthPct > 0.6f -> HP_GREEN; healthPct > 0.3f -> HP_YELLOW; else -> HP_RED }
 
         batch.begin()
         font.color = TEXT_WHITE
         val hpLabel = "HP: $health/$maxHealth"
-        font.draw(batch, hpLabel, panelX + PANEL_PADDING, y)
+        font.draw(batch, hpLabel, panelX + layout.panelPadding, y)
         batch.end()
-        y -= font.lineHeight * 0.7f
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        val barX = panelX + PANEL_PADDING + textWidth(hpLabel) + 10
-        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH, 8f)
-        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, y - font.lineHeight * 0.7f, STATUS_BAR_WIDTH * healthPct, 8f)
+        val barY = y - font.lineHeight * 0.7f
+        val barX = panelX + layout.panelPadding + textWidth(hpLabel) + 10
+        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, barY, layout.statusBarWidth, 8f)
+        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, barY, layout.statusBarWidth * healthPct, 8f)
         shapeRenderer.end()
+    }
 
-        y -= font.lineHeight * 2f
+    private fun drawItemSection(items: List<exploration.port.ItemView>, label: String, panelX: Float, startY: Float, minY: Float) {
+        var y = startY
+        font.color = TEXT_HIGHLIGHT
+        font.draw(batch, label, panelX + layout.panelPadding, y)
 
-        batch.begin()
-        font.color = TEXT_DIM; font.draw(batch, "Explored: $exploredCount/$totalAreas | Devices: $activatedCount/$totalDevices", panelX + PANEL_PADDING, y)
-
-        if (carriedItems.isNotEmpty()) {
-            font.color = TEXT_HIGHLIGHT
-            y -= font.lineHeight * 2.5f
-            font.draw(batch, "Carried:", panelX + PANEL_PADDING, y)
-            for ((i, item) in carriedItems.withIndex()) {
-                y -= font.lineHeight * 1.3f
-                if (y < minY) break
-                font.color = if (item.locked) TEXT_DIM else TEXT_WHITE
-                val lockedStr = if (item.locked) " [locked]" else ""
-                font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + PANEL_PADDING, y)
-            }
+        for ((i, item) in items.withIndex()) {
+            y -= font.lineHeight * 1.3f
+            if (y < minY) break
+            font.color = if (item.locked) TEXT_DIM else TEXT_WHITE
+            val lockedStr = if (item.locked) " [locked]" else ""
+            font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + layout.panelPadding, y)
         }
+    }
 
-        if (equippedItems.isNotEmpty()) {
-            y -= font.lineHeight * 2f
-            font.color = TEXT_HIGHLIGHT; font.draw(batch, "Equipped:", panelX + PANEL_PADDING, y)
-            for ((i, item) in equippedItems.withIndex()) {
-                y -= font.lineHeight * 1.3f
-                if (y < minY) break
-                font.color = TEXT_HIGHLIGHT; val lockedStr = if (item.locked) " [locked]" else ""
-                font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + PANEL_PADDING, y)
-            }
+    private fun drawEquippedSection(items: List<exploration.port.ItemView>, panelX: Float, startY: Float, minY: Float) {
+        var y = startY
+        font.color = TEXT_HIGHLIGHT; font.draw(batch, "Equipped:", panelX + layout.panelPadding, y)
+
+        for ((i, item) in items.withIndex()) {
+            y -= font.lineHeight * 1.3f
+            if (y < minY) break
+            font.color = TEXT_HIGHLIGHT; val lockedStr = if (item.locked) " [locked]" else ""
+            font.draw(batch, "${i + 1}. ${item.name}$lockedStr", panelX + layout.panelPadding, y)
         }
-        batch.end()
     }
 
     private fun drawBottomBarPass(exits: Map<Direction, exploration.port.ExitInfo?>, areaItems: List<exploration.port.ItemView>, carriedItems: List<exploration.port.ItemView>, equippedItems: List<exploration.port.ItemView>) {
-        val barY = 0f; val barH = BOTTOM_BAR_HEIGHT
+        val barY = 0f; val barH = layout.bottomBarHeight
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(0f, barY, viewportW, barH)
+        shapeRenderer.setColor(PANEL_BG); shapeRenderer.rect(0f, barY, layout.viewportW, barH)
 
-        val centerX = viewportW / 2; val buttonY = barY + DIRECTION_BTN_SIZE / 2 + 10f
-        val radius = DIRECTION_BTN_SIZE / 2; val spacing = DIRECTION_BTN_SIZE * 1.3f
+        val centerX = layout.viewportW / 2; val buttonY = barY + layout.directionBtnSize / 2 + 10f
+        val radius = layout.directionBtnSize / 2; val spacing = layout.directionBtnSize * BUTTON_SPACING_MULTIPLIER
 
         val southRowY = buttonY
         val northY = buttonY + spacing * 0.9f
@@ -381,7 +377,7 @@ class LibgdxRenderBackend(
         batch.begin()
         font.color = TEXT_DIM
         val hintText = "g: Take | p: Drop | e: Equip | r: Unequip"
-        font.draw(batch, hintText, viewportW / 2f - textWidth(hintText) / 2f, barH - 15f)
+        font.draw(batch, hintText, layout.viewportW / 2f - textWidth(hintText) / 2f, barH - 15f)
 
         for ((dir, pos) in buttonPositions) {
             val exitInfo = exits[dir]; val locked = exitInfo == null || exitInfo.blocked
@@ -397,18 +393,18 @@ class LibgdxRenderBackend(
         if (areaItems.isNotEmpty()) {
             var itemX = RenderBackend.MARGIN; val itemY = barH * 0.5f; font.color = TEXT_HIGHLIGHT
             for ((i, item) in areaItems.withIndex()) if (!item.locked) {
-                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label) + 20
+                val label = "${i + 1}. ${item.name}"; font.draw(batch, label, itemX.toFloat(), itemY); itemX += textWidth(label) + ITEM_SPACING
             }
         }
         batch.end()
     }
 
     private fun drawGameOverOverlay(message: String) {
-        val overlayW = viewportW * 0.7f; val overlayH = viewportH * 0.5f
-        val x = (viewportW - overlayW) / 2; val y = (viewportH - overlayH) / 2
+        val overlayW = layout.viewportW * 0.7f; val overlayH = layout.viewportH * 0.5f
+        val x = (layout.viewportW - overlayW) / 2; val y = (layout.viewportH - overlayH) / 2
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, viewportW, viewportH)
+        shapeRenderer.setColor(Color(0f, 0f, 0f, 0.6f)); shapeRenderer.rect(0f, 0f, layout.viewportW, layout.viewportH)
         shapeRenderer.end()
 
         batch.begin()
@@ -430,4 +426,23 @@ class LibgdxRenderBackend(
     fun linesVisibleInHeight(height: Float): Int = (height / font.lineHeight).toInt().coerceAtLeast(1)
 
     fun dispose() { font.dispose() }
+
+    companion object {
+        const val BUTTON_SPACING_MULTIPLIER = 1.3f
+        const val ITEM_SPACING = 20f
+        const val MAX_WRAP_CHARS = 200
+        const val DEFAULT_MAX_WRAP_CHARS = 40
+
+        val PANEL_BG = Color(0.05f, 0.06f, 0.09f, 0.85f)
+        val BG_COLOR = Color(0.1f, 0.12f, 0.18f, 1f)
+        val BORDER_COLOR = Color(0.25f, 0.3f, 0.4f, 1f)
+        val TEXT_WHITE = Color(0.9f, 0.9f, 0.9f, 1f)
+        val TEXT_DIM = Color(0.4f, 0.45f, 0.55f, 1f)
+        val TEXT_HIGHLIGHT = Color(0.3f, 0.7f, 1f, 1f)
+        val HP_GREEN = Color(0.2f, 0.8f, 0.3f, 1f)
+        val HP_YELLOW = Color(0.9f, 0.7f, 0.1f, 1f)
+        val HP_RED = Color(0.85f, 0.2f, 0.2f, 1f)
+        val BUTTON_BG = Color(0.15f, 0.2f, 0.3f, 0.9f)
+        val BUTTON_LOCKED = Color(0.12f, 0.12f, 0.18f, 0.7f)
+    }
 }
