@@ -154,18 +154,18 @@ class GamePresenter(
 
         // g/p/e/r — item actions (may trigger selection overlay)
         if (event == null) {
-            val action = InputMapper.handleItemKey(character, vd)
+            val action = LibgdxInputMapper.handleItemKey(character, vd)
             when (action) {
-                is InputMapper.ItemAction.Event -> {
+                is LibgdxInputMapper.ItemAction.Event -> {
                     viewData = engine.tick(gameRef!!, action.event)
                     checkGameOver(viewData!!)
                     updateStoryOverlay()
                 }
-                is InputMapper.ItemAction.Selection -> {
+                is LibgdxInputMapper.ItemAction.Selection -> {
                     selectionState = SelectionState(true, action.target, action.items)
                     overlayState = OverlayState.Inventory
                 }
-                is InputMapper.ItemAction.Message -> {} // no-op for now
+                is LibgdxInputMapper.ItemAction.Message -> {} // no-op for now
                 null -> {}
             }
         }
@@ -187,7 +187,7 @@ class GamePresenter(
     fun handleTouchDown(x: Float, y: Float): Boolean {
         val vd = viewData ?: return false
 
-        var event = InputMapper.mapTouchDirection(x, y, vd, layout)
+        var event = LibgdxInputMapper.mapTouchDirection(x, y, vd, layout)
         if (event != null && gameRef != null) {
             viewData = engine.tick(gameRef!!, event)
             checkGameOver(viewData!!)
@@ -195,7 +195,7 @@ class GamePresenter(
             return true
         }
 
-        val actionResult = InputMapper.mapTouchItem(x, y, vd, layout)
+        val actionResult = LibgdxInputMapper.mapTouchItem(x, y, vd, layout)
         actionResult?.let { result ->
             val inputEvent = when (result) {
                 is ItemActionResult.Take -> InputEvent.TakeItem(result.itemName)

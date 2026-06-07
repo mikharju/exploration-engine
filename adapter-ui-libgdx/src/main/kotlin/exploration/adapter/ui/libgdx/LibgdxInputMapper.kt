@@ -7,7 +7,7 @@ import exploration.port.ItemView
 import exploration.port.InputEvent
 import exploration.port.ViewData
 
-object InputMapper {
+object LibgdxInputMapper {
 
     fun mapKey(keycode: Int, viewData: ViewData): InputEvent? = when (keycode) {
         // Movement - arrow keys and WASD

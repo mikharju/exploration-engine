@@ -215,10 +215,10 @@ class LibgdxRenderBackend(
 
         val allItems = mutableListOf<String>()
         for (trigger in filteredTriggers) {
-            allItems.add(trigger)
+            if (!allItems.contains(trigger)) allItems.add(trigger)
         }
         for (msg in messageHistory) {
-            allItems.add(msg)
+            if (!allItems.contains(msg)) allItems.add(msg)
         }
         if (allItems.size > layout.maxMessages) {
             allItems.subList(0, allItems.size - layout.maxMessages).clear()
@@ -232,6 +232,8 @@ class LibgdxRenderBackend(
 
         val maxCharsForTriggers = (panelW - layout.panelPadding * 2).toInt() / 6.coerceAtLeast(1)
         drawMessageLines(allItems, y, panelX, minY, maxCharsForTriggers)
+        
+        batch.end()
     }
 
     private fun drawAreaLabel(areaName: String?, panelX: Float, panelBottomY: Float) {
@@ -282,7 +284,22 @@ class LibgdxRenderBackend(
 
         var y = panelBottomY - font.lineHeight / 2
         val minY = panelTopY + layout.panelPadding
-        drawHealthBar(health, maxHealth, panelX, y)
+        
+        // Draw health bar text and bar
+        val healthPct = if (maxHealth > 0) health.toFloat() / maxHealth else 0f
+        val hpColor = when { healthPct > 0.6f -> HP_GREEN; healthPct > 0.3f -> HP_YELLOW; else -> HP_RED }
+        batch.begin()
+        font.color = TEXT_WHITE
+        val hpLabel = "HP: $health/$maxHealth"
+        font.draw(batch, hpLabel, panelX + layout.panelPadding, y)
+        batch.end()
+        
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        val barY = y - font.lineHeight * 0.7f
+        val barX = panelX + layout.panelPadding + textWidth(hpLabel) + 10
+        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, barY, layout.statusBarWidth, 8f)
+        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, barY, layout.statusBarWidth * healthPct, 8f)
+        shapeRenderer.end()
 
         y -= font.lineHeight * 2f
 
@@ -299,24 +316,6 @@ class LibgdxRenderBackend(
             drawEquippedSection(equippedItems, panelX, y, minY)
         }
         batch.end()
-    }
-
-    private fun drawHealthBar(health: Int, maxHealth: Int, panelX: Float, y: Float) {
-        val healthPct = if (maxHealth > 0) health.toFloat() / maxHealth else 0f
-        val hpColor = when { healthPct > 0.6f -> HP_GREEN; healthPct > 0.3f -> HP_YELLOW; else -> HP_RED }
-
-        batch.begin()
-        font.color = TEXT_WHITE
-        val hpLabel = "HP: $health/$maxHealth"
-        font.draw(batch, hpLabel, panelX + layout.panelPadding, y)
-        batch.end()
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-        val barY = y - font.lineHeight * 0.7f
-        val barX = panelX + layout.panelPadding + textWidth(hpLabel) + 10
-        shapeRenderer.setColor(Color(0.15f, 0.15f, 0.2f, 1f)); shapeRenderer.rect(barX, barY, layout.statusBarWidth, 8f)
-        shapeRenderer.setColor(hpColor); shapeRenderer.rect(barX, barY, layout.statusBarWidth * healthPct, 8f)
-        shapeRenderer.end()
     }
 
     private fun drawItemSection(items: List<exploration.port.ItemView>, label: String, panelX: Float, startY: Float, minY: Float) {
